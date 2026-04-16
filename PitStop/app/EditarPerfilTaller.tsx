@@ -67,7 +67,6 @@ export default function EditProfileTaller() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
 
-            // 🔥 Rellenar estados automáticamente
             setNombre(data.datosPersonales?.nombre || "");
             setTelefono(data.datosPersonales?.telefono || "");
             setDireccion(data.datosPersonales?.direccion || "");

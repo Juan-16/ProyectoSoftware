@@ -111,7 +111,7 @@ export default function PerfilPersona() {
       {/* BOTÓN EDITAR */}
       <TouchableOpacity
         onPress={() => router.push("/EditarPerfilPersona")}
-        className="mt-8 bg-fondoNaranja px-2 py-3 rounded-xl"
+        className="mt-9 bg-fondoNaranja px-2 py-3 rounded-xl "
       >
         <Text className="text-white font-semibold text-base">
           Editar Perfil
@@ -121,7 +121,7 @@ export default function PerfilPersona() {
       {/* BOTÓN LOGOUT */}
       <TouchableOpacity
         onPress={handleLogout}
-        className="absolute bottom-6 right-6 bg-red-500 px-6 py-3 rounded-xl shadow-lg my-2"
+        className="absolute bottom-6 right-6 bg-red-500 px-6 py-3 rounded-xl shadow-lg mb-8"
       >
         <Text className="text-white font-semibold">
           Logout

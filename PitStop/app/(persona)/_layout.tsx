@@ -16,6 +16,11 @@ export default function PersonaLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
         }} 
       />
+
+       <Tabs.Screen 
+        name="CitasPersona" 
+      />
+
       <Tabs.Screen 
         name="vehiculos" 
         options={{
@@ -32,6 +37,13 @@ export default function PersonaLayout() {
         name="perfil" 
         options={{
           tabBarIcon: ({ color, size }) => <FontAwesome name="user" size={size} color={color} />,
+        }} 
+      />
+
+         <Tabs.Screen 
+        name="MapaUsuario" 
+        options={{
+          tabBarIcon: ({ color, size }) => <FontAwesome name="map" size={size} color={color} />,
         }} 
       />
     </Tabs>

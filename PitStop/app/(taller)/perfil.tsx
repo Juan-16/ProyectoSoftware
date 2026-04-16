@@ -12,6 +12,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
+import { signOut } from "firebase/auth";
 
 const diasSemana = [
   "Lunes",
@@ -28,6 +29,12 @@ export default function VerProfileTaller() {
   const [perfil, setPerfil] = useState<any>(null);
   const [mostrarServicios, setMostrarServicios] = useState(false);
   const [mostrarHorarios, setMostrarHorarios] = useState(false);
+
+    const handleLogout = async () => {
+      await signOut(auth);
+      router.replace("/LogIn");
+    };
+  
 
   const obtenerPerfil = async () => {
     try {
@@ -168,6 +175,15 @@ export default function VerProfileTaller() {
         )}
       </View>
 
+       <TouchableOpacity
+        onPress={handleLogout}
+        className=" bg-red-500 py-3 px-5 rounded-xl flex-row items-left self-end my-2  "
+      >
+        <Text className="text-white font-semibold">
+          Logout
+        </Text>
+      </TouchableOpacity>
+
       <TouchableOpacity
         onPress={() => router.push("/EditarPerfilTaller")}
         className="bg-fondoNaranja py-3 px-5 rounded-xl flex-row items-left self-end my-2 "
@@ -177,6 +193,8 @@ export default function VerProfileTaller() {
           Editar Perfil
         </Text>
       </TouchableOpacity>
+
+      
 
 
 

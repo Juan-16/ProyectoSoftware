@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,28 +10,83 @@ import {
 } from "react-native";
 import RNPickerSelect from "react-native-picker-select";
 import { auth, db } from "../../firebase.config";
-import { doc, updateDoc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  updateDoc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function TabsTalleresHome() {
   const [modalVisible, setModalVisible] = useState(false);
   const [intervalo, setIntervalo] = useState<number | null>(null);
   const [cupos, setCupos] = useState<number | null>(null);
   const [taller, setTaller] = useState<any>(null);
+  const [citasHoy, setCitasHoy] = useState<any[]>([]);
 
-  useEffect(() => {
-    const fetchTaller = async () => {
+
+
+  useFocusEffect(
+    useCallback(() => {
+      const fetchTaller = async () => {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        try {
+          const docRef = doc(db, "talleres", user.uid);
+          const docSnap = await getDoc(docRef);
+
+          if (docSnap.exists()) {
+            setTaller(docSnap.data());
+          }
+
+          cargarCitasHoy();
+        } catch (error) {
+          console.error(error);
+        }
+      };
+
+      fetchTaller();
+      cargarCitasHoy();
+    }, [])
+  );
+
+
+  const cargarCitasHoy = async () => {
+    try {
       const user = auth.currentUser;
       if (!user) return;
 
-      const docRef = doc(db, "talleres", user.uid);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setTaller(docSnap.data());
-      }
-    };
+      const hoy = new Date().toLocaleDateString("sv-SE");
 
-    fetchTaller();
-  }, []);
+      const q = query(
+        collection(db, "citas"),
+        where("tallerId", "==", user.uid),
+        where("fecha", "==", hoy)
+      );
+
+      const snapshot = await getDocs(q);
+
+      const lista: any[] = [];
+
+      snapshot.forEach((doc) => {
+        lista.push({
+          id: doc.id,
+          ...doc.data(),
+        });
+      });
+
+      lista.sort((a, b) => (a.hora > b.hora ? 1 : -1));
+
+      setCitasHoy(lista);
+    } catch (error) {
+      console.error("Error cargando citas:", error);
+    }
+  };
 
   const guardarConfiguracion = async () => {
     try {
@@ -51,7 +106,10 @@ export default function TabsTalleresHome() {
       });
 
       setModalVisible(false);
-      Alert.alert("✅ Configuración guardada", "La configuración se actualizó correctamente.");
+      Alert.alert(
+        "✅ Configuración guardada",
+        "La configuración se actualizó correctamente."
+      );
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "No se pudo guardar la configuración.");
@@ -61,6 +119,8 @@ export default function TabsTalleresHome() {
   return (
     <View className="flex-1 bg-white p-6">
       <ScrollView>
+
+        {/* Bienvenida */}
         <Text className="text-2xl font-bold mb-4 text-black">
           Bienvenido, {taller?.datosPersonales?.nombre || "Taller"}
         </Text>
@@ -70,6 +130,7 @@ export default function TabsTalleresHome() {
           atender en cada intervalo.
         </Text>
 
+        {/* Botón configuración */}
         <TouchableOpacity
           className="bg-orange-500 py-3 px-4 rounded-lg mb-6"
           onPress={() => setModalVisible(true)}
@@ -79,22 +140,68 @@ export default function TabsTalleresHome() {
           </Text>
         </TouchableOpacity>
 
-        {/* Ejemplo de citas del día */}
-        <Text className="text-lg font-semibold mb-2">Citas de hoy</Text>
-        <Text className="text-gray-500 italic">
-          (Aquí se mostrarán las citas programadas para hoy una vez implementemos esa parte)
+        {/* Citas de hoy */}
+        <Text className="text-lg font-semibold mb-3">
+          Citas de hoy ({citasHoy.length})
         </Text>
+
+        {citasHoy.length === 0 ? (
+          <Text className="text-gray-500 italic">
+            No hay citas programadas para hoy.
+          </Text>
+        ) : (
+          citasHoy.map((cita) => (
+            <View
+              key={cita.id}
+              className={`
+                p-3 mb-3 rounded-lg 
+               ${
+              cita.estado === "confirmada"
+                ? "bg-[#2cc55852] "
+                : cita.estado === "cancelada"
+                ? "bg-[#6b010120]"
+                : "bg-[#f59b0020]"
+            }
+              `}
+            >
+              <Text className="font-bold text-base">{cita.hora}</Text>
+
+              <Text>Servicio: {cita.servicio}</Text>
+              <Text>Vehículo: {cita.vehiculoId}</Text>
+
+              <Text
+                className={`font-bold mt-1 ${cita.estado === "confirmada"
+                    ? "text-green-600"
+                    : cita.estado === "cancelada"
+                      ? "text-red-600"
+                      : "text-orange-500"
+                  }`}
+              >
+                {cita.estado === "confirmada"
+                  ? "Confirmada"
+                  : cita.estado === "cancelada"
+                    ? "Cancelada"
+                    : "Pendiente"}
+              </Text>
+            </View>
+          ))
+        )}
+
       </ScrollView>
 
-      {/* Modal de configuración */}
+      {/* Modal configuración */}
       <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
+
             <Text className="text-xl font-bold mb-4 text-center text-black">
               Configurar citas
             </Text>
 
-            <Text className="text-gray-700 mb-2">Selecciona el intervalo de citas:</Text>
+            <Text className="text-gray-700 mb-2">
+              Selecciona el intervalo de citas:
+            </Text>
+
             <RNPickerSelect
               onValueChange={(value) => setIntervalo(value)}
               placeholder={{ label: "Selecciona intervalo", value: null }}
@@ -105,7 +212,10 @@ export default function TabsTalleresHome() {
               ]}
             />
 
-            <Text className="text-gray-700 mt-4 mb-2">Cantidad de carros por intervalo:</Text>
+            <Text className="text-gray-700 mt-4 mb-2">
+              Cantidad de carros por intervalo:
+            </Text>
+
             <RNPickerSelect
               onValueChange={(value) => setCupos(value)}
               placeholder={{ label: "Selecciona cantidad", value: null }}
@@ -122,15 +232,20 @@ export default function TabsTalleresHome() {
               className="bg-orange-500 py-3 px-4 rounded-lg mt-6"
               onPress={guardarConfiguracion}
             >
-              <Text className="text-white text-center font-semibold">Guardar</Text>
+              <Text className="text-white text-center font-semibold">
+                Guardar
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               className="mt-4"
               onPress={() => setModalVisible(false)}
             >
-              <Text className="text-center text-gray-500">Cancelar</Text>
+              <Text className="text-center text-gray-500">
+                Cancelar
+              </Text>
             </TouchableOpacity>
+
           </View>
         </View>
       </Modal>

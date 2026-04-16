@@ -20,7 +20,7 @@ const guardarVehiculoBackend = async (data: any) => {
 
   const token = await user.getIdToken();
 
-  const res = await fetch("${process.env.EXPO_PUBLIC_API_URL}/vehicles", {
+  const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/vehicles`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

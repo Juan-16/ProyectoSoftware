@@ -41,18 +41,24 @@ export default function completeProfile() {
 
             // 🔥 TOKEN DE FIREBASE (para que backend sepa quién es)
             const token = await user.getIdToken();
+            if (!direccionData) {
+                alert("Debes seleccionar una ubicación en el mapa");
+                return;
+            }
 
-            const response = await fetch("http://10.179.5.80:3000/profile/persona", {
+            const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/profile/persona`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    nombre,
-                    telefono,
-                    direccion,
-                    fechaNacimiento: fechaNacimiento?.toISOString(),
+                    nombreTaller,
+                    telefonoTaller,
+                    direccion: direccionData?.direccion,
+                    lat: direccionData?.lat,
+                    lng: direccionData?.lng,
+                    horarios,
                     imageUrl,
                 }),
             });
@@ -84,6 +90,10 @@ export default function completeProfile() {
             }
 
             const token = await user.getIdToken();
+            if (!direccionData) {
+                alert("Debes seleccionar una ubicación en el mapa");
+                return;
+            }
 
             const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/profile/taller`, {
                 method: "POST",
@@ -94,7 +104,9 @@ export default function completeProfile() {
                 body: JSON.stringify({
                     nombreTaller,
                     telefonoTaller,
-                    direccion,
+                    direccion: direccionData?.direccion,
+                    lat: direccionData?.lat,
+                    lng: direccionData?.lng,
                     horarios,
                     imageUrl,
                 }),
@@ -176,14 +188,22 @@ export default function completeProfile() {
     };
 
 
-    const [direccion, setDireccion] = useState<string>("");
+    const [direccionData, setDireccionData] = useState<{
+        direccion: string;
+        lat: number;
+        lng: number;
+    } | null>(null);
     const [mostrarMapa, setMostrarMapa] = useState(false);
     const handleDireccionSeleccionada = (ubicacion: {
         latitude: number;
         longitude: number;
         direccion: string;
     }) => {
-        setDireccion(ubicacion.direccion);
+        setDireccionData({
+            direccion: ubicacion.direccion,
+            lat: ubicacion.latitude,
+            lng: ubicacion.longitude,
+        });
     };
 
     useEffect(() => {
@@ -199,10 +219,14 @@ export default function completeProfile() {
                 latitude: location.coords.latitude,
                 longitude: location.coords.longitude,
             });
-
             if (place) {
                 const sugerencia = `${place.street ?? ""} ${place.name ?? ""}, ${place.city ?? ""}, ${place.region ?? ""}`;
-                setDireccion(sugerencia);
+
+                setDireccionData({
+                    direccion: sugerencia,
+                    lat: location.coords.latitude,
+                    lng: location.coords.longitude,
+                });
             }
         })();
     }, []);
@@ -220,7 +244,7 @@ export default function completeProfile() {
     const validarCampos = (): boolean => {
         const nombreValido = nombre.trim().length > 0;
         const telefonoValido = /^[0-9]{7,10}$/.test(telefono.trim());
-        const direccionValida = direccion.trim().length > 5;
+        const direccionValida = direccionData !== null;
         let fechaNacimientoValida = false;
 
         if (fechaNacimiento) {
@@ -276,7 +300,7 @@ export default function completeProfile() {
     const validarCamposTaller = (): boolean => {
         const nombreValido = nombreTaller.trim().length > 0;
         const telefonoValido = /^[0-9]{7,10}$/.test(telefonoTaller.trim());
-        const direccionValida = direccion.trim().length > 5;
+        const direccionValida = direccionData !== null;
 
         setErrorNombreTaller(!nombreValido);
         setErrorTelefonoTaller(!telefonoValido);
@@ -485,13 +509,13 @@ export default function completeProfile() {
                             </View>
 
                             <View className="w-full items-center mb-6">
-                                <Text className="mb-2 font-semibold text-base">O escribe tu dirección manualmente</Text>
-                                <TextInput
-                                    className="border w-11/12 rounded-xl px-4 py-3"
-                                    placeholder="Ej: Calle 123 #45-67, Bogotá"
-                                    value={direccion}
-                                    onChangeText={setDireccion}
-                                />
+                                <Text className="mb-2 font-semibold text-base">
+                                    Dirección seleccionada
+                                </Text>
+
+                                <Text className="text-gray-700 text-center">
+                                    {direccionData?.direccion || "No has seleccionado una ubicación"}
+                                </Text>
                             </View>
                             <TouchableOpacity
                                 className="bg-fondoNaranja w-6/12 py-3 rounded-xl  items-center"
@@ -665,13 +689,13 @@ export default function completeProfile() {
                             </View>
 
                             <View className="w-full items-center mb-6">
-                                <Text className="mb-2 font-semibold text-base">O escribe tu dirección manualmente</Text>
-                                <TextInput
-                                    className="border w-11/12 rounded-xl px-4 py-3"
-                                    placeholder="Ej: Calle 123 #45-67, Bogotá"
-                                    value={direccion}
-                                    onChangeText={setDireccion}
-                                />
+                                <Text className="mb-2 font-semibold text-base">
+                                    Dirección seleccionada
+                                </Text>
+
+                                <Text className="text-gray-700 text-center">
+                                    {direccionData?.direccion || "No has seleccionado una ubicación"}
+                                </Text>
                             </View>
                             <TouchableOpacity
                                 className="bg-fondoNaranja w-6/12 py-3 rounded-xl mt-2 items-center"

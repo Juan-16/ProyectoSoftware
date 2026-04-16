@@ -6,12 +6,11 @@ const router = express.Router();
 const db = admin.firestore();
 
 
-// 👤 PERFIL PERSONA
 router.post("/persona", verifyToken, async (req, res) => {
   try {
-    const uid = req.uid; // 🔥 viene del token, NO del body
+    const uid = req.uid;
 
-    const { nombre, telefono, direccion, fechaNacimiento, imageUrl } = req.body;
+    const { nombre, telefono, direccion, lat, lng, fechaNacimiento, imageUrl } = req.body;
 
     await db.collection("usuarios").doc(uid).set(
       {
@@ -20,6 +19,10 @@ router.post("/persona", verifyToken, async (req, res) => {
           nombre,
           telefono,
           direccion,
+          ubicacion: {
+            lat,
+            lng,
+          },
           fechaNacimiento,
           imageUrl,
           creadoEn: new Date(),
@@ -40,7 +43,7 @@ router.post("/taller", verifyToken, async (req, res) => {
   try {
     const uid = req.uid;
 
-    const { nombreTaller, telefonoTaller, direccion, horarios, imageUrl } = req.body;
+    const { nombreTaller, telefonoTaller, direccion, lat, lng, horarios, imageUrl } = req.body;
 
     await db.collection("talleres").doc(uid).set(
       {
@@ -49,6 +52,10 @@ router.post("/taller", verifyToken, async (req, res) => {
           nombre: nombreTaller,
           telefono: telefonoTaller,
           direccion,
+          ubicacion: {
+            lat,
+            lng,
+          },
           imageUrl,
           creadoEn: new Date(),
         },
@@ -90,16 +97,16 @@ router.get("/me", verifyToken, async (req, res) => {
 
 router.get("/vehiculos", verifyToken, async (req, res) => {
   try {
-    console.log("UID DEL TOKEN:", req.uid);  // 👈 AGREGA ESTO
+    console.log("UID DEL TOKEN:", req.uid);  
 
     const uid = req.uid;
 
     const doc = await db.collection("usuarios").doc(uid).get();
 
-    console.log("DOC EXISTE:", doc.exists); // 👈 Y ESTO
+    console.log("DOC EXISTE:", doc.exists); 
 
     const data = doc.data();
-    console.log("DATA:", data); // 👈 Y ESTO
+    console.log("DATA:", data); 
 
     const vehiculosObj = data?.vehiculos || {};
 
@@ -116,7 +123,7 @@ router.get("/vehiculos", verifyToken, async (req, res) => {
   }
 });
 
-// 🔎 OBTENER PERFIL TALLER
+
 router.get("/tallerInfo", verifyToken, async (req, res) => {
   try {
     const uid = req.uid;

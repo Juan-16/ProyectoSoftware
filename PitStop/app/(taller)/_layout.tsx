@@ -31,6 +31,11 @@ export default function TallerLayout() {
       />
 
       <Tabs.Screen
+        name="CitasTaller"
+      />
+
+
+      <Tabs.Screen
         name="servicios"
         options={{
           tabBarIcon: ({ color, size }) => (
@@ -47,6 +52,9 @@ export default function TallerLayout() {
           ),
         }}
       />
+
+
+      
     </Tabs>
   );
 }
