@@ -13,6 +13,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
 import { signOut } from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+
+
+const getUser = async () => {
+  const userStr = await AsyncStorage.getItem("user");
+  return userStr ? JSON.parse(userStr) : null;
+};
+
 
 const diasSemana = [
   "Lunes",
@@ -30,20 +39,26 @@ export default function VerProfileTaller() {
   const [mostrarServicios, setMostrarServicios] = useState(false);
   const [mostrarHorarios, setMostrarHorarios] = useState(false);
 
-    const handleLogout = async () => {
-      await signOut(auth);
-      router.replace("/LogIn");
-    };
-  
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.replace("/LogIn");
+  };
+
 
   const obtenerPerfil = async () => {
     try {
-      const user = auth.currentUser;
-      if (!user) return;
+      const user = await getUser();
 
-      const token = await user.getIdToken();
+      if (!user) throw new Error("Usuario no autenticado");
 
-      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/profile/tallerInfo`, {
+      const token = await AsyncStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("No autenticado");
+      }
+
+
+      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/taller`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -175,7 +190,7 @@ export default function VerProfileTaller() {
         )}
       </View>
 
-       <TouchableOpacity
+      <TouchableOpacity
         onPress={handleLogout}
         className=" bg-red-500 py-3 px-5 rounded-xl flex-row items-left self-end my-2  "
       >
@@ -194,7 +209,7 @@ export default function VerProfileTaller() {
         </Text>
       </TouchableOpacity>
 
-      
+
 
 
 

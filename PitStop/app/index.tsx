@@ -1,11 +1,12 @@
 import { Feather } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
-import { createUserWithEmailAndPassword } from "firebase/auth";
 import React from "react";
 import { Alert, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { auth } from "../firebase.config";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 
 export default function Index() {
+  
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
@@ -54,40 +55,70 @@ export default function Index() {
     if (!validarCampos()) return;
 
     try {
-      // 🔹 1. Crear usuario en Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+      const res = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/auth/register`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        }
+      );
 
-      console.log("API URL:", process.env.EXPO_PUBLIC_API_URL);
+      const data = await res.json();
 
-      console.log("Auth creado:", user.uid);
 
-      // 🔹 2. Guardar perfil en tu backend
-      await fetch(`${process.env.EXPO_PUBLIC_API_URL}/profile`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          uid: user.uid,
-          email: user.email,
-          createdAt: new Date(),
-        }),
-      });
+      if (!res.ok) {
+        throw new Error(data.error || "Error al registrar");
+      }
 
-      console.log("Perfil creado en Firestore");
 
-      // 🔹 3. Ir a completar perfil
-      router.push("/completeProfile");
+      // 🔥 LOGIN AUTOMÁTICO
+      const loginRes = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/auth/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        }
+      );
+
+      
+
+    
+
+      const loginData = await loginRes.json();
+
+      if (!loginRes.ok) {
+        throw new Error(loginData.error || "Error en login");
+      }
+
+      if (!loginData.idToken) {
+        throw new Error("No se recibió token");
+      }
+
+      console.log("LOGIN RES STATUS:", loginRes.status);
+      console.log("LOGIN DATA:", loginData);
+
+      await AsyncStorage.setItem("token", loginData.idToken);
+      await AsyncStorage.setItem("user", JSON.stringify(loginData));
+
+      console.log("Usuario logueado:", loginData);
+
+      router.replace("/completeProfile");
 
     } catch (error) {
-      console.error("Error:", error);
-
-      if (error instanceof Error && "code" in error && error.code === "auth/email-already-in-use") {
-        Alert.alert("Error", "El correo ya está registrado.");
-      } else {
-        Alert.alert("Error", "No se pudo crear la cuenta.");
-      }
+      console.error(error);
+      Alert.alert("Error", "No se pudo crear la cuenta");
     }
   };
 
@@ -107,9 +138,8 @@ export default function Index() {
         onChangeText={setEmail}
         placeholder="Email@domain.com"
         placeholderTextColor="#9CA3AF"
-        className={`w-10/12 bg-white text-black px-4 py-3 rounded-xl my-2 ${
-          emailError ? "border border-red-500" : ""
-        }`}
+        className={`w-10/12 bg-white text-black px-4 py-3 rounded-xl my-2 ${emailError ? "border border-red-500" : ""
+          }`}
         value={email}
       />
       {emailError ? <Text className="text-red-500 text-sm w-10/12">{emailError}</Text> : null}
@@ -120,9 +150,8 @@ export default function Index() {
           placeholder="Password"
           placeholderTextColor="#9CA3AF"
           secureTextEntry={!showPassword}
-          className={`bg-white text-black px-4 py-3 rounded-xl my-2 pr-10 ${
-            passwordError ? "border border-red-500" : ""
-          }`}
+          className={`bg-white text-black px-4 py-3 rounded-xl my-2 pr-10 ${passwordError ? "border border-red-500" : ""
+            }`}
           value={password}
         />
 

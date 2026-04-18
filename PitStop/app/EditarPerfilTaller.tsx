@@ -9,9 +9,17 @@ import {
     ScrollView,
     ActivityIndicator,
 } from "react-native";
-import { auth } from "../firebase.config";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+
+
+const getUser = async () => {
+  const userStr = await AsyncStorage.getItem("user");
+  return userStr ? JSON.parse(userStr) : null;
+};
+
 
 export default function EditProfileTaller() {
     const router = useRouter();
@@ -50,14 +58,16 @@ export default function EditProfileTaller() {
     // 🔹 Obtener perfil actual
     const obtenerPerfil = async () => {
         try {
-            const user = auth.currentUser;
-            if (!user) return;
+            const user = await getUser();
+            const token = await AsyncStorage.getItem("token");
 
-            const token = await user.getIdToken();
+            if (!user) throw new Error("Usuario no autenticado");
+            if (!token) throw new Error("No autenticado");
 
             const res = await fetch(
-                `${process.env.EXPO_PUBLIC_API_URL}/profile/tallerInfo`,
+                `${process.env.EXPO_PUBLIC_API_URL}/taller`,
                 {
+                    method: "GET",
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -65,6 +75,7 @@ export default function EditProfileTaller() {
             );
 
             const data = await res.json();
+            console.log("Perfil taller:", data);
             if (!res.ok) throw new Error(data.error);
 
             setNombre(data.datosPersonales?.nombre || "");
@@ -98,13 +109,14 @@ export default function EditProfileTaller() {
     // 🔹 Actualizar perfil
     const actualizarPerfil = async () => {
         try {
-            const user = auth.currentUser;
-            if (!user) return;
+            const user = await getUser();
+            const token = await AsyncStorage.getItem("token");
 
-            const token = await user.getIdToken();
+            if (!user) throw new Error("Usuario no autenticado");
+            if (!token) throw new Error("No autenticado");
 
             const res = await fetch(
-                `${process.env.EXPO_PUBLIC_API_URL}/profile/taller`,
+                `${process.env.EXPO_PUBLIC_API_URL}/taller`,
                 {
                     method: "PUT",
                     headers: {
@@ -168,7 +180,7 @@ export default function EditProfileTaller() {
             {/* Teléfono */}
             <Text className="mb-2 font-semibold">Teléfono</Text>
             <TextInput
-            
+
                 value={telefono}
                 onChangeText={setTelefono}
                 keyboardType="phone-pad"

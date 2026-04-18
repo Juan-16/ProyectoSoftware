@@ -8,7 +8,15 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
-import { auth } from "../../firebase.config";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+
+
+const getUser = async () => {
+  const userStr = await AsyncStorage.getItem("user");
+  return userStr ? JSON.parse(userStr) : null;
+};
+
 
 export default function Vehiculos() {
   const router = useRouter();
@@ -17,12 +25,18 @@ export default function Vehiculos() {
 
   const cargarVehiculos = async () => {
     try {
-      const user = auth.currentUser;
-      if (!user) return;
+      const user = await getUser();
 
-      const token = await user.getIdToken();
+      if (!user) throw new Error("Usuario no autenticado");
 
-      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/profile/vehiculos`, {
+      const token = await AsyncStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("No autenticado");
+      }
+
+
+      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/vehiculos`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -46,10 +60,18 @@ export default function Vehiculos() {
           style: "destructive",
           onPress: async () => {
             try {
-              const user = auth.currentUser;
-              const token = await user!.getIdToken();
+              const user = await getUser();
 
-              await fetch(`${process.env.EXPO_PUBLIC_API_URL}/vehicles/${placa}`, {
+              if (!user) throw new Error("Usuario no autenticado");
+
+              const token = await AsyncStorage.getItem("token");
+
+              if (!token) {
+                throw new Error("No autenticado");
+              }
+
+
+              await fetch(`${process.env.EXPO_PUBLIC_API_URL}/vehiculos/${placa}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
               });

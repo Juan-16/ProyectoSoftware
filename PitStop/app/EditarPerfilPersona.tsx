@@ -12,8 +12,16 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { auth } from "../firebase.config";
 import MapPicker from '../components/MapPicker';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+
+
+const getUser = async () => {
+    const userStr = await AsyncStorage.getItem("user");
+    return userStr ? JSON.parse(userStr) : null;
+};
+
 
 export default function EditarPerfilPersona() {
     const router = useRouter();
@@ -27,6 +35,10 @@ export default function EditarPerfilPersona() {
     const [direccion, setDireccion] = useState("");
     const [fechaNacimiento, setFechaNacimiento] = useState<Date | null>(null);
     const [imageUrl, setImageUrl] = useState<string | null>(null);
+    const [lat, setLat] = useState<number | null>(null);
+    const [lng, setLng] = useState<number | null>(null);
+
+
 
     const [mostrarPicker, setMostrarPicker] = useState(false);
 
@@ -37,14 +49,17 @@ export default function EditarPerfilPersona() {
         edad: "",
     });
 
-    const handleDireccionSeleccionada = (ubicacion: {
+    type Ubicacion = {
         latitude: number;
         longitude: number;
         direccion: string;
-    }) => {
-        setDireccion(ubicacion.direccion);
     };
 
+    const handleDireccionSeleccionada = (ubicacion: Ubicacion) => {
+        setDireccion(ubicacion.direccion);
+        setLat(ubicacion.latitude);
+        setLng(ubicacion.longitude);
+    };
 
     useEffect(() => {
         cargarPerfil();
@@ -52,12 +67,18 @@ export default function EditarPerfilPersona() {
 
     const cargarPerfil = async () => {
         try {
-            const user = auth.currentUser;
-            if (!user) return;
+            const user = await getUser();
 
-            const token = await user.getIdToken();
+            if (!user) throw new Error("Usuario no autenticado");
 
-            const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/profile/me`, {
+            const token = await AsyncStorage.getItem("token");
+
+            if (!token) {
+                throw new Error("No autenticado");
+            }
+
+
+            const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/persona/me`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
@@ -116,11 +137,17 @@ export default function EditarPerfilPersona() {
         try {
             setGuardando(true);
 
-            const user = auth.currentUser;
-            const token = await user!.getIdToken();
+            const user = await getUser();
 
-            await fetch(`${process.env.EXPO_PUBLIC_API_URL}/profile/persona`, {
-                method: "POST",
+            if (!user) throw new Error("Usuario no autenticado");
+
+            const token = await AsyncStorage.getItem("token");
+
+            if (!token) {
+                throw new Error("No autenticado");
+            }
+            await fetch(`${process.env.EXPO_PUBLIC_API_URL}/persona/update`, {
+                method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
@@ -129,7 +156,9 @@ export default function EditarPerfilPersona() {
                     nombre,
                     telefono,
                     direccion,
-                    fechaNacimiento,
+                    lat,
+                    lng,
+                    fechaNacimiento: fechaNacimiento?.toISOString(),
                     imageUrl,
                 }),
             });

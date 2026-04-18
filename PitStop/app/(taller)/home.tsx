@@ -20,6 +20,15 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { useFocusEffect } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+
+
+const getUser = async () => {
+  const userStr = await AsyncStorage.getItem("user");
+  return userStr ? JSON.parse(userStr) : null;
+};
+
 
 export default function TabsTalleresHome() {
   const [modalVisible, setModalVisible] = useState(false);
@@ -58,8 +67,16 @@ export default function TabsTalleresHome() {
 
   const cargarCitasHoy = async () => {
     try {
-      const user = auth.currentUser;
-      if (!user) return;
+       const user = await getUser();
+
+      if (!user) throw new Error("Usuario no autenticado");
+
+      const token = await AsyncStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("No autenticado");
+      }
+
 
       const hoy = new Date().toLocaleDateString("sv-SE");
 
@@ -89,32 +106,53 @@ export default function TabsTalleresHome() {
   };
 
   const guardarConfiguracion = async () => {
-    try {
-      const user = auth.currentUser;
-      if (!user) return;
+  try {
+     const user = await getUser();
 
-      if (!intervalo || !cupos) {
-        Alert.alert("Faltan datos", "Por favor selecciona ambas opciones.");
-        return;
+      if (!user) throw new Error("Usuario no autenticado");
+
+      const token = await AsyncStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("No autenticado");
       }
 
-      await updateDoc(doc(db, "talleres", user.uid), {
-        configuracionCitas: {
+
+    if (!intervalo || !cupos) {
+      Alert.alert("Faltan datos", "Por favor selecciona ambas opciones.");
+      return;
+    }
+
+    const res = await fetch(
+      `${process.env.EXPO_PUBLIC_API_URL}/taller/configuracion-citas`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
           intervalo,
           cupos,
-        },
-      });
+        }),
+      }
+    );
 
-      setModalVisible(false);
-      Alert.alert(
-        "✅ Configuración guardada",
-        "La configuración se actualizó correctamente."
-      );
-    } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "No se pudo guardar la configuración.");
-    }
-  };
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.error);
+
+    setModalVisible(false);
+
+    Alert.alert(
+      "✅ Configuración guardada",
+      "La configuración se actualizó correctamente."
+    );
+  } catch (error) {
+    console.error(error);
+    Alert.alert("Error", "No se pudo guardar la configuración.");
+  }
+};
 
   return (
     <View className="flex-1 bg-white p-6">

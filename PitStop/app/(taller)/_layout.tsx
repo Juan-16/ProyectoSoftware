@@ -21,6 +21,15 @@ export default function TallerLayout() {
         }}
       />
 
+        <Tabs.Screen
+        name="CitasTaller"
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar-outline" size={size} color={color} />
+          ),
+        }}
+      />
+
       <Tabs.Screen
         name="solicitudes"
         options={{
@@ -30,17 +39,12 @@ export default function TallerLayout() {
         }}
       />
 
-      <Tabs.Screen
-        name="CitasTaller"
-      />
-
+    
 
       <Tabs.Screen
-        name="servicios"
+        name="misSolicitudes"
         options={{
-          tabBarIcon: ({ color, size }) => (
-            <FontAwesome5 name="tools" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name="alert-circle" size={size} color={color} />,
         }}
       />
 
@@ -53,8 +57,11 @@ export default function TallerLayout() {
         }}
       />
 
-
       
+
+
+
+
     </Tabs>
   );
 }

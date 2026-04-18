@@ -1,10 +1,19 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, ScrollView, ActivityIndicator } from "react-native";
-import { auth, db } from "../../firebase.config";
+
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { useFocusEffect } from "@react-navigation/native";
 import { updateDoc, doc, deleteDoc } from "firebase/firestore";
 import { TouchableOpacity, Alert } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+
+
+const getUser = async () => {
+  const userStr = await AsyncStorage.getItem("user");
+  return userStr ? JSON.parse(userStr) : null;
+};
+
 
 interface Cita {
   id: string;
@@ -28,38 +37,28 @@ export default function CitasPersona() {
 
   const cargarCitas = async () => {
     try {
-      const user = auth.currentUser;
-      if (!user) return;
+      const user = await getUser();
 
-      const q = query(
-        collection(db, "citas"),
-        where("usuarioId", "==", user.uid)
+      if (!user) throw new Error("Usuario no autenticado");
+
+      const token = await AsyncStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("No autenticado");
+      }
+
+      const res = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/citas`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
-      const snapshot = await getDocs(q);
+      const data = await res.json();
 
-      const listaCitas: Cita[] = [];
-
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-
-        listaCitas.push({
-          id: doc.id,
-          tallerNombre: data.tallerNombre || "Taller",
-          vehiculoId: data.vehiculoId || "",
-          fecha: data.fecha || "",
-          hora: data.hora || "",
-          servicio: data.servicio || "",
-          estado: data.estado || "pendiente",
-        });
-      });
-
-      listaCitas.sort((a, b) => {
-        if (a.fecha === b.fecha) return a.hora > b.hora ? 1 : -1;
-        return a.fecha > b.fecha ? 1 : -1;
-      });
-
-      setCitas(listaCitas);
+      setCitas(data);
     } catch (error) {
       console.error("Error cargando citas:", error);
     } finally {
@@ -69,22 +68,74 @@ export default function CitasPersona() {
 
   const cancelarCita = async (id: string) => {
     try {
-      await updateDoc(doc(db, "citas", id), {
-        estado: "cancelada",
-      });
+      const user = await getUser();
 
-      cargarCitas(); // refresca
+      if (!user) throw new Error("Usuario no autenticado");
+
+      const token = await AsyncStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("No autenticado");
+      }
+
+
+      await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/citas/${id}/cancelar`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      cargarCitas();
     } catch (error) {
-      console.error("Error cancelando cita:", error);
+      console.error("Error cancelando:", error);
     }
+  };
+
+  const confirmarCancelacion = (id: string) => {
+    Alert.alert(
+      "Cancelar cita",
+      "¿Seguro que deseas cancelar esta cita?",
+      [
+        { text: "No", style: "cancel" },
+        {
+          text: "Sí, cancelar",
+          style: "destructive",
+          onPress: () => cancelarCita(id),
+        },
+      ]
+    );
   };
 
   const eliminarCita = async (id: string) => {
     try {
-      await deleteDoc(doc(db, "citas", id));
+      const user = await getUser();
+
+      if (!user) throw new Error("Usuario no autenticado");
+
+      const token = await AsyncStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("No autenticado");
+      }
+
+
+      await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/citas/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
       cargarCitas();
     } catch (error) {
-      console.error("Error eliminando cita:", error);
+      console.error("Error eliminando:", error);
     }
   };
 
@@ -142,34 +193,34 @@ export default function CitasPersona() {
           <Text>Fecha: {cita.fecha}</Text>
           <Text>Hora: {cita.hora}</Text>
 
-          <Text
-            className={`font-bold mt-2 ${cita.estado === "confirmada"
-              ? "text-green-600"
-              : cita.estado === "cancelada"
-                ? "text-red-600"
-                : "text-orange-500"
-              }`}
-          >
-            {cita.estado === "confirmada"
-              ? "Confirmada"
-              : cita.estado === "cancelada"
-                ? "Cita Cancelada"
-                : "Pendiente de confirmación"}
-          </Text>
+          <View className="flex-row mt-3 justify-between items-center">
 
-          <View className="flex-row mt-3 justify-end gap-2">
+            {/* Estado */}
+            <Text
+              className={`font-bold ${cita.estado === "confirmada"
+                ? "text-green-600"
+                : cita.estado === "cancelada"
+                  ? "text-red-600"
+                  : "text-orange-500"
+                }`}
+            >
+              {cita.estado === "confirmada"
+                ? "Confirmada"
+                : cita.estado === "cancelada"
+                  ? "Cita Cancelada"
+                  : "Pendiente de confirmación"}
+            </Text>
 
-            {/* Botón Cancelar */}
+            {/* Botón dinámico */}
             {(cita.estado === "pendiente" || cita.estado === "confirmada") && (
               <TouchableOpacity
-                onPress={() => cancelarCita(cita.id)}
+                onPress={() => confirmarCancelacion(cita.id)}
                 className="bg-red-500 px-3 py-2 rounded"
               >
                 <Text className="text-white font-bold">Cancelar</Text>
               </TouchableOpacity>
             )}
 
-            {/* Botón Eliminar */}
             {cita.estado === "cancelada" && (
               <TouchableOpacity
                 onPress={() => confirmarEliminar(cita.id)}

@@ -1,9 +1,8 @@
 import { Link, useRouter } from "expo-router";
 import React from 'react';
 import { Image, Text, TextInput, TouchableOpacity, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../firebase.config";
 
 
 export default function LogIn() {
@@ -15,45 +14,53 @@ export default function LogIn() {
   const [errorEmail, setErrorEmail] = React.useState(false);
   const [errorPassword, setErrorPassword] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState("");
+  const handleSignIn = async () => {
+    try {
+      setErrorMessage("");
 
- const handleSignIn = async () => {
-  try {
-    setErrorMessage("");
+      const res = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/auth/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        }
+      );
 
-    
+      const data = await res.json();
 
-    // 🔥 LOGIN REAL EN FIREBASE AUTH (APP)
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
+      if (!res.ok) {
+        throw new Error(data.error || "Credenciales incorrectas");
+      }
 
-    // 🔥 AHORA SÍ este token es el correcto
-    const token = await user.getIdToken();
+      // 🔥 GUARDAR TOKEN (LO QUE TE FALTABA)
+      await AsyncStorage.setItem("token", data.idToken);
 
-    // 🔥 PREGUNTAMOS AL BACKEND SOLO EL TIPO
-    const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/profile/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+      // 🔥 GUARDAR USER (opcional pero útil)
+      await AsyncStorage.setItem("user", JSON.stringify(data));
 
-    const data = await res.json();
+      console.log("Login OK:", data);
+      console.log("TOKEN:", data.idToken);
 
-    console.log("UID APP:", user.uid);
-    console.log("UID BACK:", data.uid);
+      // 🔥 REDIRECCIÓN SEGÚN TIPO
+      if (data.tipo === "persona") {
+        router.replace("/(persona)/home");
+      } else if (data.tipo === "taller") {
+        router.replace("/(taller)/home");
+      } else {
+        router.replace("/completeProfile");
+      }
 
-    if (data.tipo === "persona") {
-      router.replace("/(persona)/home");
-    } else if (data.tipo === "taller") {
-      router.replace("/(taller)/home");
-    } else {
-      router.replace("/completeProfile");
+    } catch (err) {
+      console.log(err);
+      setErrorMessage("Credenciales incorrectas");
     }
-
-  } catch (err: any) {
-    console.log(err);
-    setErrorMessage("Credenciales incorrectas");
-  }
-};
-
-
+  };
 
   return (
     <View className="flex-1 items-center pt-16 bg-fondo">

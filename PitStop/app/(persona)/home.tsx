@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,96 +8,49 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { db } from "../../firebase.config";
-import { collection, getDocs } from "firebase/firestore";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function Home() {
   const [talleres, setTalleres] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    cargarTalleresCercanos();
-  }, []);
+
+    useFocusEffect(
+      useCallback(() => {
+           cargarTalleresCercanos();
+      }, [])
+    );
+  
 
   const cargarTalleresCercanos = async () => {
-    try {
-      const { status } =
-        await Location.requestForegroundPermissionsAsync();
+  try {
+    const { status } = await Location.requestForegroundPermissionsAsync();
 
-      if (status !== "granted") {
-        Alert.alert(
-          "Permiso denegado",
-          "No se pudo obtener tu ubicación."
-        );
-        return;
-      }
-
-      const location = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = location.coords;
-
-      const snapshot = await getDocs(collection(db, "talleres"));
-      const lista: any[] = [];
-
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        const datos = data.datosPersonales || {};
-
-        const taller = {
-          id: docSnap.id,
-          nombre: datos.nombre,
-          direccion: datos.direccion,
-          imageUrl: datos.imageUrl,
-          lat: datos.lat,
-          lon: datos.lon,
-        };
-
-        // Si el taller tiene ubicación registrada, calculamos la distancia
-        if (taller.lat && taller.lon) {
-          const dist = calcularDistancia(
-            latitude,
-            longitude,
-            taller.lat,
-            taller.lon
-          );
-
-          if (dist <= 10) {
-            lista.push({ ...taller, distancia: dist });
-          }
-        } else {
-          lista.push({ ...taller, distancia: null });
-        }
-      });
-
-      setTalleres(lista);
-    } catch (err) {
-      console.error("Error cargando talleres:", err);
-    } finally {
-      setLoading(false);
+    if (status !== "granted") {
+      Alert.alert("Permiso denegado");
+      return;
     }
-  };
 
-  const calcularDistancia = (
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number
-  ) => {
-    const R = 6371; // Radio de la Tierra en km
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const location = await Location.getCurrentPositionAsync({});
+    const { latitude, longitude } = location.coords;
 
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) ** 2;
+    const res = await fetch(
+      `${process.env.EXPO_PUBLIC_API_URL}/taller/cercanos?lat=${latitude}&lng=${longitude}`
+    );
 
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
+    const data = await res.json();
+
+    setTalleres(data);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   if (loading) {
     return (

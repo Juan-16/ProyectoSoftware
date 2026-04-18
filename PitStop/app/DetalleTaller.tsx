@@ -11,17 +11,22 @@ import {
 } from "react-native";
 import RNPickerSelect from "react-native-picker-select";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { db, auth } from "../firebase.config";
-import { doc, getDoc, collection, query, where, getDocs, addDoc } from "firebase/firestore";
-  
+import { useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+
+
+const getUser = async () => {
+  const userStr = await AsyncStorage.getItem("user");
+  return userStr ? JSON.parse(userStr) : null;
+};
+
 export default function DetalleTaller() {
   const { id } = useLocalSearchParams();
-  const router = useRouter();
 
   const [taller, setTaller] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const [horariosDisponibles, setHorariosDisponibles] = useState<{ hora: string; disponibles: number }[]>([]);
+  const [horariosDisponibles, setHorariosDisponibles] = useState<any[]>([]);
   const [fechaSeleccionada, setFechaSeleccionada] = useState(new Date());
   const [mostrarCalendario, setMostrarCalendario] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -41,109 +46,74 @@ export default function DetalleTaller() {
   }, [id]);
 
   useEffect(() => {
-    if (taller) generarHorariosDisponibles(fechaSeleccionada);
+    if (taller) generarHorariosDisponibles();
   }, [fechaSeleccionada, taller]);
 
+  // 🔥 GET /taller/:id
   const cargarTaller = async () => {
     try {
-      const docRef = doc(db, "talleres", id as string);
-      const snap = await getDoc(docRef);
+      const res = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/taller/${id}`
+      );
 
-      if (!snap.exists()) {
-        Alert.alert("Error", "No se encontró el taller.");
-        router.back();
-        return;
-      }
+      const data = await res.json();
 
-      const data = snap.data();
+      if (!res.ok) throw new Error(data.error);
+
       setTaller(data);
-
-      // 🔥 NUEVO: cargar servicios dinámicos
-      if (data.servicios && Array.isArray(data.servicios)) {
-        setServiciosDisponibles(data.servicios);
-      } else {
-        setServiciosDisponibles([]);
-      }
-
+      setServiciosDisponibles(data.servicios || []);
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "No se pudo cargar la información del taller.");
+      Alert.alert("Error", "No se pudo cargar el taller");
     } finally {
       setLoading(false);
     }
   };
+
+  // 🔥 GET /vehiculos (protegido)
   const cargarVehiculos = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
-
     try {
-      const docRef = doc(db, "usuarios", user.uid);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data.vehiculos) {
-          const listaVehiculos = Object.keys(data.vehiculos).map((placa) => ({
-            id: placa,
-            placa,
-            ...data.vehiculos[placa],
-          }));
-          setVehiculos(listaVehiculos);
-        }
+      const user = await getUser();
+
+      if (!user) throw new Error("Usuario no autenticado");
+
+      const token = await AsyncStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("No autenticado");
       }
+      const res = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/vehiculos`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await res.json();
+
+      setVehiculos(data);
     } catch (error) {
-      console.error("❌ Error cargando vehículos:", error);
+      console.error("Error cargando vehículos:", error);
     }
   };
 
-  const generarHorariosDisponibles = async (fecha: Date) => {
-    if (!taller?.horarios || !taller.configuracionCitas) {
-      setHorariosDisponibles([]);
-      return;
+  // 🔥 GET /citas/disponibles
+  const generarHorariosDisponibles = async () => {
+    try {
+      const fechaISO = fechaSeleccionada.toLocaleDateString("sv-SE");
+
+      const res = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/citas/disponibles?tallerId=${id}&fecha=${fechaISO}`
+      );
+
+      const data = await res.json();
+
+      setHorariosDisponibles(data);
+    } catch (error) {
+      console.error(error);
     }
-
-    const diaSemana = (fecha.getDay() + 6) % 7; // lunes=0
-    const horarioDia = taller.horarios[diaSemana];
-
-    if (!horarioDia?.activo) {
-      setHorariosDisponibles([]);
-      return;
-    }
-
-    const inicio = convertirAHoras(horarioDia.inicio);
-    const fin = convertirAHoras(horarioDia.fin);
-    const intervalo = taller.configuracionCitas.intervalo || 30;
-    const cupos = taller.configuracionCitas.cupos || 1;
-
-    const listaHorarios: string[] = [];
-    let horaActual = inicio;
-    while (horaActual < fin) {
-      listaHorarios.push(formatoHora(horaActual));
-      horaActual += intervalo / 60;
-    }
-
-    // Consultar citas existentes para esa fecha y taller
-    const fechaISO = fechaSeleccionada.toLocaleDateString("sv-SE");
-    const q = query(collection(db, "citas"), where("tallerId", "==", id), where("fecha", "==", fechaISO));
-    const snap = await getDocs(q);
-    const citasDeDia = snap.docs.map((d) => d.data());
-
-    const horariosConCupos = listaHorarios.map((hora) => {
-      const usadas = citasDeDia.filter((c: any) => c.hora === hora && c.estado !== "cancelada").length;
-      return { hora, disponibles: Math.max(0, cupos - usadas) };
-    });
-
-    setHorariosDisponibles(horariosConCupos);
-  };
-
-  const convertirAHoras = (hora: string) => {
-    const [h, m] = hora.split(":").map(Number);
-    return h + m / 60;
-  };
-
-  const formatoHora = (decimal: number) => {
-    const h = Math.floor(decimal);
-    const m = Math.round((decimal - h) * 60);
-    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
   };
 
   const abrirModal = (hora: string) => {
@@ -151,53 +121,61 @@ export default function DetalleTaller() {
     setModalVisible(true);
   };
 
+  // 🔥 POST /citas
   const agendarCita = async () => {
     if (!vehiculoSeleccionado || !servicio || !horaSeleccionada) {
-      Alert.alert("Completa los datos", "Selecciona vehículo, servicio y hora.");
+      Alert.alert("Completa los datos");
       return;
     }
 
     setLoadingAgendar(true);
 
     try {
-      const fechaISO = fechaSeleccionada.toLocaleDateString("sv-SE");
-      // Verificar nuevamente cupos antes de guardar
-      const q = query(collection(db, "citas"), where("tallerId", "==", id), where("fecha", "==", fechaISO), where("hora", "==", horaSeleccionada));
-      const snap = await getDocs(q);
-      const usadas = snap.docs.filter((d) => d.data().estado !== "cancelada").length;
-      const cupos = taller.configuracionCitas.cupos || 1;
+      const user = await getUser();
 
-      if (usadas >= cupos) {
-        Alert.alert("Cupo lleno", "Esta hora ya no está disponible.");
-        generarHorariosDisponibles(fechaSeleccionada);
-        return;
+      if (!user) throw new Error("Usuario no autenticado");
+
+      const token = await AsyncStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("No autenticado");
       }
+      const fechaISO = fechaSeleccionada.toLocaleDateString("sv-SE");
 
-      const user = auth.currentUser;
-      if (!user) return Alert.alert("Error", "Debes iniciar sesión.");
+      const res = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/citas`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            tallerId: id,
+            vehiculoId: vehiculoSeleccionado,
+            servicio,
+            comentario,
+            fecha: fechaISO,
+            hora: horaSeleccionada,
+          }),
+        }
+      );
 
-      await addDoc(collection(db, "citas"), {
-        tallerId: id,
-        usuarioId: user.uid,
-        vehiculoId: vehiculoSeleccionado,
-        servicio,
-        comentario,
-        fecha: fechaISO,
-        hora: horaSeleccionada,
-        estado: "pendiente",
-        creadaEn: new Date().toISOString(),
-      });
+      const data = await res.json();
 
-      Alert.alert("✅ Cita agendada", `Tu cita fue reservada el ${fechaISO} a las ${horaSeleccionada}, espera la confirmación del taller.`);
+      if (!res.ok) throw new Error(data.error);
+
+      Alert.alert("✅ Cita agendada");
+
       setModalVisible(false);
       setVehiculoSeleccionado("");
       setServicio("");
       setComentario("");
-      generarHorariosDisponibles(fechaSeleccionada);
 
+      generarHorariosDisponibles();
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "No se pudo agendar la cita.");
+      Alert.alert("Error", "No se pudo agendar");
     } finally {
       setLoadingAgendar(false);
     }
@@ -207,7 +185,6 @@ export default function DetalleTaller() {
     return (
       <View className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" color="#f97316" />
-        <Text className="text-gray-600 mt-2">Cargando taller...</Text>
       </View>
     );
   }
@@ -215,7 +192,7 @@ export default function DetalleTaller() {
   if (!taller) {
     return (
       <View className="flex-1 justify-center items-center">
-        <Text className="text-red-500">No se encontró información del taller</Text>
+        <Text>No encontrado</Text>
       </View>
     );
   }
@@ -225,101 +202,88 @@ export default function DetalleTaller() {
   return (
     <ScrollView className="flex-1 bg-white p-5">
       <Text className="text-2xl font-bold mb-2">{datos.nombre}</Text>
-      <Text className="text-gray-600 mb-1">📍 {datos.direccion}</Text>
-      <Text className="text-gray-600 mb-4">Intervalo: {taller.configuracionCitas.intervalo} min | Cupos: {taller.configuracionCitas.cupos}</Text>
+      <Text className="text-gray-600 mb-4">📍 {datos.direccion}</Text>
 
-      {/* Seleccionar fecha */}
+      {/* FECHA */}
       <TouchableOpacity
         onPress={() => setMostrarCalendario(true)}
-        className="bg-orange-500 rounded-lg p-3 mb-3"
+        className="bg-orange-500 p-3 rounded-lg mb-3"
       >
-        <Text className="text-white font-semibold text-center">📅 Selecciona el día ({fechaSeleccionada.toLocaleDateString()})</Text>
+        <Text className="text-white text-center">
+          📅 {fechaSeleccionada.toLocaleDateString()}
+        </Text>
       </TouchableOpacity>
 
       {mostrarCalendario && (
         <DateTimePicker
           value={fechaSeleccionada}
           mode="date"
-          display="default"
           minimumDate={new Date()}
-          onChange={(e, selectedDate) => {
+          onChange={(e, d) => {
             setMostrarCalendario(false);
-            if (selectedDate) setFechaSeleccionada(selectedDate);
+            if (d) setFechaSeleccionada(d);
           }}
         />
       )}
 
-      <Text className="text-lg font-semibold mb-3">Horarios disponibles:</Text>
-      {taller?.horarios &&
-        !taller.horarios[(fechaSeleccionada.getDay() === 0 ? 6 : fechaSeleccionada.getDay() - 1)]?.activo ? (
-        <Text className="text-red-500">🚫 El taller está cerrado este día.</Text>
-      ) : horariosDisponibles.length === 0 ? (
-        <Text className="text-gray-500">No hay horarios disponibles para este día.</Text>
-      ) : (
-        horariosDisponibles.map((h, idx) => (
-          <TouchableOpacity
-            key={idx}
-            disabled={h.disponibles <= 0 || loadingAgendar}
-            onPress={() => abrirModal(h.hora)}
-            className={`rounded-lg p-3 mb-2 ${h.disponibles > 0 ? "bg-orange-500" : "bg-gray-300"}`}
-          >
-            <Text className="text-white font-semibold text-center">{h.hora} — {h.disponibles > 0 ? `${h.disponibles} cupos` : "Sin cupo"}</Text>
-          </TouchableOpacity>
-        ))
-      )}
+      {/* HORARIOS */}
+      {horariosDisponibles.map((h, i) => (
+        <TouchableOpacity
+          key={i}
+          disabled={h.disponibles <= 0}
+          onPress={() => abrirModal(h.hora)}
+          className={`p-3 rounded-lg mb-2 ${h.disponibles > 0 ? "bg-orange-500" : "bg-gray-300"
+            }`}
+        >
+          <Text className="text-white text-center">
+            {h.hora} - {h.disponibles} cupos
+          </Text>
+        </TouchableOpacity>
+      ))}
 
       {/* MODAL */}
       <Modal visible={modalVisible} transparent animationType="slide">
         <View className="flex-1 justify-end bg-black/40">
-          <View className="bg-white rounded-t-2xl p-5">
-            <Text className="text-lg font-bold mb-3">Agendar cita — {horaSeleccionada}</Text>
-
-            <Text className="font-semibold mb-1">Selecciona tu vehículo:</Text>
+          <View className="bg-white p-5 rounded-t-2xl">
             <RNPickerSelect
-              onValueChange={(value) => setVehiculoSeleccionado(value)}
-              placeholder={{ label: "Selecciona un vehículo...", value: "" }}
-              items={vehiculos.map((v) => ({ label: `${v.placa} (${v.modelo || v.tipoVehiculo || "Sin modelo"})`, value: v.id }))}
+              placeholder={{
+                label: "Placa de vehículo",
+                value: null,
+              }}
+              onValueChange={setVehiculoSeleccionado}
+              items={vehiculos.map((v) => ({
+                label: v.placa,
+                value: v.placa,
+              }))}
             />
 
-            <Text className="font-semibold mt-4 mb-1">Servicio:</Text>
             <RNPickerSelect
+              placeholder={{
+                label: "Servicio a realizar",
+                value: null,
+              }}
+
               onValueChange={setServicio}
-              placeholder={{ label: "Selecciona un servicio...", value: "" }}
-              items={
-                serviciosDisponibles.length > 0
-                  ? serviciosDisponibles.map((s) => ({
-                    label: s,
-                    value: s,
-                  }))
-                  : [{ label: "No hay servicios disponibles", value: "" }]
-              }
-              value={servicio}
+              items={serviciosDisponibles.map((s) => ({
+                label: s,
+                value: s,
+              }))}
             />
 
-            <Text className="font-semibold mt-4 mb-1">Comentario (opcional):</Text>
             <TextInput
-              className="border border-gray-300 rounded-lg p-2"
-              placeholder="Agrega un comentario..."
+              placeholder="Comentario"
               value={comentario}
               onChangeText={setComentario}
-              multiline
             />
 
-            <View className="flex-row justify-between mt-5">
-              <TouchableOpacity
-                onPress={() => setModalVisible(false)}
-                className="bg-gray-300 rounded-lg px-5 py-2"
-              >
-                <Text className="text-gray-800 font-semibold">Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={agendarCita}
-                disabled={loadingAgendar}
-                className="bg-orange-500 rounded-lg px-5 py-2"
-              >
-                <Text className="text-white font-semibold">{loadingAgendar ? "Guardando..." : "Agendar cita"}</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              onPress={agendarCita}
+              className="bg-orange-500 p-3 rounded-lg mt-3"
+            >
+              <Text className="text-white text-center">
+                {loadingAgendar ? "Guardando..." : "Agendar"}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>

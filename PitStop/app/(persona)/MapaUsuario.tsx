@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,14 +6,24 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Alert,
+  Platform,
 } from "react-native";
-import MapView, { Marker, Callout } from "react-native-maps";
+import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
-import { collection, getDocs } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  addDoc,
+  onSnapshot,
+  doc,
+  query,
+  where,
+} from "firebase/firestore";
 import { db } from "../../firebase.config";
-import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { Linking, Platform } from "react-native";
+import { Linking } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface Taller {
   id: string;
@@ -24,6 +34,11 @@ interface Taller {
   servicios: string[];
 }
 
+const getUser = async () => {
+  const userStr = await AsyncStorage.getItem("user");
+  return userStr ? JSON.parse(userStr) : null;
+};
+
 export default function MapaUsuario() {
   const [ubicacion, setUbicacion] = useState<any>(null);
   const [talleres, setTalleres] = useState<Taller[]>([]);
@@ -31,9 +46,12 @@ export default function MapaUsuario() {
   const [servicioFiltro, setServicioFiltro] = useState<string | null>(null);
   const [serviciosDisponibles, setServiciosDisponibles] = useState<string[]>([]);
 
-  const router = useRouter();
 
-  // 📍 Obtener ubicación
+  const [solicitudId, setSolicitudId] = useState<string | null>(null);
+  const [ubicacionTaller, setUbicacionTaller] = useState<any>(null);
+  const [estadoSolicitud, setEstadoSolicitud] = useState<string | null>(null);
+
+
   const obtenerUbicacion = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== "granted") return;
@@ -42,7 +60,9 @@ export default function MapaUsuario() {
     setUbicacion(loc.coords);
   };
 
-  // 🔥 Cargar talleres
+
+
+
   const cargarTalleres = async () => {
     try {
       const snapshot = await getDocs(collection(db, "talleres"));
@@ -56,7 +76,6 @@ export default function MapaUsuario() {
         if (!datos?.ubicacion) return;
 
         const servicios = data.servicios || [];
-
         servicios.forEach((s: string) => serviciosSet.add(s));
 
         lista.push({
@@ -72,13 +91,101 @@ export default function MapaUsuario() {
       setTalleres(lista);
       setServiciosDisponibles(Array.from(serviciosSet));
     } catch (error) {
-      console.error("Error cargando talleres:", error);
+      console.log(error);
     } finally {
       setLoading(false);
     }
   };
 
-  const abrirRuta = (lat: number, lng: number, nombre: string) => {
+  const generarCodigo = () => {
+    return Math.floor(1000 + Math.random() * 9000).toString(); // 4 dígitos
+  };
+
+
+
+  const pedirAyuda = async () => {
+    try {
+      const user = await getUser();
+
+      if (!user || !ubicacion) {
+        Alert.alert("Error", "No se pudo obtener tu ubicación");
+        return;
+      }
+
+      const codigo = generarCodigo();
+      const docRef = await addDoc(collection(db, "solicitudesAyuda"), {
+        usuarioId: user.uid,
+        estado: "pendiente",
+        codigoConfirmacion: codigo, 
+        ubicacionUsuario: {
+          lat: ubicacion.latitude,
+          lng: ubicacion.longitude,
+        },
+        tallerId: null,
+        ubicacionTaller: null,
+        creadaEn: new Date(),
+      });
+
+      setSolicitudId(docRef.id);
+
+      Alert.alert(
+        "Solicitud enviada",
+        `Tu código es: ${codigo} \nPuedes ver el estado de tu solicitud en el apartado de alertas, espera a que un taller la acepte.`
+      );
+
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+ 
+  useEffect(() => {
+    if (!solicitudId) return;
+
+    const unsub = onSnapshot(
+      doc(db, "solicitudesAyuda", solicitudId),
+      (docSnap) => {
+        const data = docSnap.data();
+        if (!data) return;
+
+    
+        if (data.estado === "completada" || data.estado === "cancelada") {
+          setSolicitudId(null);
+          setEstadoSolicitud(null);
+          setUbicacionTaller(null);
+
+          Alert.alert("Servicio finalizado", "Tu servicio ha sido completado.");
+          return;
+        }
+
+        setEstadoSolicitud(data.estado);
+
+        if (data.ubicacionTaller) {
+          setUbicacionTaller(data.ubicacionTaller);
+        }
+
+        if (data.estado === "en_camino") {
+          Alert.alert("Taller en camino", "Un taller ha aceptado tu solicitud y está en camino hacia ti porfavor quedese en el mismo lugar.");
+        }
+      }
+    );
+
+    return () => unsub();
+  }, [solicitudId]);
+
+  
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      Promise.all([
+        obtenerUbicacion(),
+        cargarTalleres(),
+        verificarSolicitudActiva(), 
+      ]).finally(() => setLoading(false));
+    }, [])
+  );
+
+  const abrirRuta = (lat: number, lng: number) => {
     const url = Platform.select({
       ios: `http://maps.apple.com/?daddr=${lat},${lng}`,
       android: `google.navigation:q=${lat},${lng}`,
@@ -87,38 +194,60 @@ export default function MapaUsuario() {
     Linking.openURL(url!);
   };
 
-  // 📏 Calcular distancia (Haversine)
+
+
+  const verificarSolicitudActiva = async () => {
+    try {
+      const user = await getUser();
+      if (!user) return;
+
+      const q = query(
+        collection(db, "solicitudesAyuda"),
+        where("usuarioId", "==", user.uid),
+        where("estado", "in", ["pendiente", "en_camino"])
+      );
+
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        const docSnap = snapshot.docs[0];
+        setSolicitudId(docSnap.id);
+
+        const data = docSnap.data();
+        setEstadoSolicitud(data.estado);
+
+        if (data.ubicacionTaller) {
+          setUbicacionTaller(data.ubicacionTaller);
+        }
+      } else {
+        setSolicitudId(null);
+        setEstadoSolicitud(null);
+        setUbicacionTaller(null); 
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const calcularDistancia = (
     lat1: number,
     lon1: number,
     lat2: number,
     lon2: number
-  ) => {
-    const R = 6371; // km
+  ): number => {
+    const R = 6371;
     const dLat = (lat2 - lat1) * (Math.PI / 180);
     const dLon = (lon2 - lon1) * (Math.PI / 180);
 
     const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.sin(dLat / 2) ** 2 +
       Math.cos(lat1 * (Math.PI / 180)) *
       Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+      Math.sin(dLon / 2) ** 2;
 
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
   };
 
-  // 🔄 Recargar al enfocar pantalla
-  useFocusEffect(
-    useCallback(() => {
-      setLoading(true);
-      obtenerUbicacion();
-      cargarTalleres();
-    }, [])
-  );
-
-  // 🔍 Filtrar talleres
   const talleresFiltrados = servicioFiltro
     ? talleres.filter((t) => t.servicios?.includes(servicioFiltro))
     : talleres;
@@ -134,18 +263,11 @@ export default function MapaUsuario() {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* 🔍 FILTROS */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filtroContainer}
-      >
+      {/* FILTROS */}
+      <ScrollView horizontal style={styles.filtroContainer}>
         <TouchableOpacity
           onPress={() => setServicioFiltro(null)}
-          style={[
-            styles.filtroBtn,
-            servicioFiltro === null && styles.filtroActivo,
-          ]}
+          style={[styles.filtroBtn, !servicioFiltro && styles.filtroActivo]}
         >
           <Text style={styles.filtroText}>Todos</Text>
         </TouchableOpacity>
@@ -164,7 +286,7 @@ export default function MapaUsuario() {
         ))}
       </ScrollView>
 
-      {/* 🗺️ MAPA */}
+      {/* MAPA */}
       <MapView
         style={styles.map}
         initialRegion={{
@@ -190,30 +312,57 @@ export default function MapaUsuario() {
                 latitude: taller.latitude,
                 longitude: taller.longitude,
               }}
-               pinColor="blue"
+              pinColor="blue"
               title={taller.nombre}
-              description={`Enrutar ${distancia.toFixed(2)} km`}
+              description={`${distancia.toFixed(2)} km`}
               onCalloutPress={() =>
-                abrirRuta(taller.latitude, taller.longitude, taller.nombre)
+                abrirRuta(taller.latitude, taller.longitude)
               }
             />
-            
           );
         })}
+
+        {/* 🚗 TALLER EN CAMINO */}
+        {ubicacionTaller && (
+          <Marker
+            coordinate={{
+              latitude: ubicacionTaller.lat,
+              longitude: ubicacionTaller.lng,
+            }}
+            pinColor="green"
+            title="Taller en camino"
+          />
+        )}
       </MapView>
+
+      {/* ESTADO */}
+      {estadoSolicitud && (
+        <View style={styles.estado}>
+          <Text style={{ color: "white" }}>
+            Estado: {estadoSolicitud}
+          </Text>
+        </View>
+      )}
+
+      <TouchableOpacity
+        style={[
+          styles.btn,
+          solicitudId && { backgroundColor: "#999" } 
+        ]}
+        onPress={pedirAyuda}
+        disabled={!!solicitudId} 
+      >
+        <Text style={{ color: "white", fontWeight: "bold" }}>
+          {solicitudId ? "Servicio en curso..." : "🚨 Pedir ayuda"}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  map: {
-    flex: 1,
-  },
-  loading: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  map: { flex: 1 },
+  loading: { flex: 1, justifyContent: "center", alignItems: "center" },
   filtroContainer: {
     position: "absolute",
     top: 50,
@@ -222,38 +371,27 @@ const styles = StyleSheet.create({
   },
   filtroBtn: {
     backgroundColor: "#ccc",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    padding: 10,
     borderRadius: 20,
     marginRight: 8,
   },
-  filtroActivo: {
+  filtroActivo: { backgroundColor: "#f97316" },
+  filtroText: { color: "white", fontWeight: "600" },
+  btn: {
+    position: "absolute",
+    bottom: 30,
+    alignSelf: "center",
     backgroundColor: "#f97316",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 30,
   },
-  filtroText: {
-    color: "white",
-    fontWeight: "600",
-  },
-  callout: {
-    width: 180,
-    backgroundColor: "white",
+  estado: {
+    position: "absolute",
+    bottom: 90,
+    alignSelf: "center",
+    backgroundColor: "black",
     padding: 10,
     borderRadius: 10,
-    borderColor: "#f97316",
-    borderWidth: 1,
-  },
-  calloutTitle: {
-    fontWeight: "bold",
-    fontSize: 16,
-    marginBottom: 5,
-  },
-  calloutText: {
-    fontSize: 12,
-    color: "#555",
-  },
-  calloutBtn: {
-    marginTop: 6,
-    color: "#f97316",
-    fontWeight: "bold",
   },
 });

@@ -1,4 +1,4 @@
-const admin = require("../firebaseAdmin");
+const admin = require("../../firebaseAdmin");
 const { enviarCorreo } = require("./mailer");
 const cron = require("node-cron");
 

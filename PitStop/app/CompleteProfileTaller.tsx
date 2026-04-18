@@ -8,8 +8,15 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { doc, setDoc } from "firebase/firestore";
-import { auth, db, storage } from "../firebase.config";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+
+
+const getUser = async () => {
+    const userStr = await AsyncStorage.getItem("user");
+    return userStr ? JSON.parse(userStr) : null;
+};
+
 
 const serviciosDisponibles = [
     'Mecánico general',
@@ -27,12 +34,17 @@ const guardarServiciosTallerBackend = async ({
     servicios: string[];
     domicilio: boolean;
 }) => {
-    const user = auth.currentUser;
+    const user = await getUser();
+
     if (!user) throw new Error("Usuario no autenticado");
 
-    const token = await user.getIdToken();
+    const token = await AsyncStorage.getItem("token");
 
-    const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/talleres`, {
+    if (!token) {
+        throw new Error("No autenticado");
+    }
+
+    const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/taller/servicios`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

@@ -8,8 +8,14 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import Modal from "react-native-modal";
 import MapPicker from '../components/MapPicker';
 import { uploadToCloudinary } from "../components/uploadToCloudinary";
-import { auth, db } from "../firebase.config";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
+
+
+const getUser = async () => {
+    const userStr = await AsyncStorage.getItem("user");
+    return userStr ? JSON.parse(userStr) : null;
+};
 
 
 const diasSemana = [
@@ -28,7 +34,8 @@ export default function completeProfile() {
 
     const guardarDatosPersona = async () => {
         try {
-            const user = auth.currentUser;
+            const user = await getUser();
+
             if (!user) throw new Error("Usuario no autenticado");
 
             let imageUrl = "";
@@ -39,29 +46,36 @@ export default function completeProfile() {
                 imageUrl = uploadedUrl;
             }
 
-            // 🔥 TOKEN DE FIREBASE (para que backend sepa quién es)
-            const token = await user.getIdToken();
+            const token = await AsyncStorage.getItem("token");
+
+            if (!token) {
+                throw new Error("No autenticado");
+            }
+
             if (!direccionData) {
                 alert("Debes seleccionar una ubicación en el mapa");
                 return;
             }
 
-            const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/profile/persona`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    nombreTaller,
-                    telefonoTaller,
-                    direccion: direccionData?.direccion,
-                    lat: direccionData?.lat,
-                    lng: direccionData?.lng,
-                    horarios,
-                    imageUrl,
-                }),
-            });
+            const response = await fetch(
+                `${process.env.EXPO_PUBLIC_API_URL}/persona`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                        nombre,
+                        telefono,
+                        direccion: direccionData?.direccion,
+                        lat: direccionData?.lat,
+                        lng: direccionData?.lng,
+                        fechaNacimiento,
+                        imageUrl,
+                    }),
+                }
+            );
 
             const data = await response.json();
 
@@ -76,9 +90,12 @@ export default function completeProfile() {
     };
 
 
+
+
     const guardarDatosTaller = async () => {
         try {
-            const user = auth.currentUser;
+            const user = await getUser();
+
             if (!user) throw new Error("Usuario no autenticado");
 
             let imageUrl = "";
@@ -89,13 +106,13 @@ export default function completeProfile() {
                 imageUrl = uploadedUrl;
             }
 
-            const token = await user.getIdToken();
-            if (!direccionData) {
-                alert("Debes seleccionar una ubicación en el mapa");
-                return;
+            const token = await AsyncStorage.getItem("token");
+
+            if (!token) {
+                throw new Error("No autenticado");
             }
 
-            const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/profile/taller`, {
+            const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/taller`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

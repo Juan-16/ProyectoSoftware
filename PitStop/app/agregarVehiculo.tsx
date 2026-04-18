@@ -13,14 +13,27 @@ import RNPickerSelect from "react-native-picker-select";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { auth } from "../firebase.config";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+
+
+const getUser = async () => {
+  const userStr = await AsyncStorage.getItem("user");
+  return userStr ? JSON.parse(userStr) : null;
+};
 
 const guardarVehiculoBackend = async (data: any) => {
-  const user = auth.currentUser;
-  if (!user) throw new Error("No auth");
+  const user = await getUser();
 
-  const token = await user.getIdToken();
+  if (!user) throw new Error("Usuario no autenticado");
 
-  const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/vehicles`, {
+  const token = await AsyncStorage.getItem("token");
+
+  if (!token) {
+    throw new Error("No autenticado");
+  }
+
+  const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/vehiculos`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -106,7 +119,7 @@ export default function AgregarVehiculo() {
       });
 
       Alert.alert("Éxito", "Vehículo agregado");
-      router.back(); // vuelve a la lista
+      router.back(); 
     } catch {
       Alert.alert("Error", "No se pudo guardar");
     }

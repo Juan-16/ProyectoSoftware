@@ -5,6 +5,15 @@ import { auth } from "../../firebase.config";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
 import { signOut } from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+
+
+const getUser = async () => {
+  const userStr = await AsyncStorage.getItem("user");
+  return userStr ? JSON.parse(userStr) : null;
+};
+
 
 export default function PerfilPersona() {
   const [perfil, setPerfil] = useState<any>(null);
@@ -25,14 +34,18 @@ export default function PerfilPersona() {
   const obtenerPerfil = async () => {
     try {
       setLoading(true); // 👈 agregado
-      const user = auth.currentUser;
-      if (!user) return;
+      const user = await getUser();
+
+      if (!user) throw new Error("Usuario no autenticado");
+
+      const token = await AsyncStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("No autenticado");
+      }
 
 
-
-      const token = await user.getIdToken();
-
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/profile/me`, {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/persona/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -111,7 +124,7 @@ export default function PerfilPersona() {
       {/* BOTÓN EDITAR */}
       <TouchableOpacity
         onPress={() => router.push("/EditarPerfilPersona")}
-        className="mt-9 bg-fondoNaranja px-2 py-3 rounded-xl "
+        className="mt-3 bg-fondoNaranja px-2 py-3 rounded-xl  "
       >
         <Text className="text-white font-semibold text-base">
           Editar Perfil
@@ -121,7 +134,7 @@ export default function PerfilPersona() {
       {/* BOTÓN LOGOUT */}
       <TouchableOpacity
         onPress={handleLogout}
-        className="absolute bottom-6 right-6 bg-red-500 px-6 py-3 rounded-xl shadow-lg mb-8"
+        className="absolute bottom-6 right-6 bg-red-500 px-6 py-3 rounded-xl shadow-lg mt-4"
       >
         <Text className="text-white font-semibold">
           Logout

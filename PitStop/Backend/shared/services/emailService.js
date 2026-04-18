@@ -1,4 +1,4 @@
-const admin = require("../firebaseAdmin"); // Tu configuración de Firebase Admin
+const admin = require("../../firebaseAdmin"); // Tu configuración de Firebase Admin
 const nodemailer = require("nodemailer");
 
 // Configura tu transporte de correo (SMTP / Gmail / SendGrid)

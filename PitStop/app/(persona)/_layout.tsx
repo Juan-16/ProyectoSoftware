@@ -10,42 +10,55 @@ export default function PersonaLayout() {
         tabBarStyle: { height: 60 }, // Ajusta la altura de la barra inferior si la quieres más pequeña
       }}
     >
-      <Tabs.Screen 
-        name="home" 
+      <Tabs.Screen
+        name="home"
         options={{
           tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
-        }} 
+        }}
       />
 
-       <Tabs.Screen 
-        name="CitasPersona" 
+    
+      <Tabs.Screen
+        name="CitasPersona"
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar-outline" size={size} color={color} />
+          ),
+        }}
       />
 
-      <Tabs.Screen 
-        name="vehiculos" 
+        <Tabs.Screen
+        name="vehiculos"
         options={{
           tabBarIcon: ({ color, size }) => <MaterialIcons name="directions-car" size={size} color={color} />,
-        }} 
+        }}
       />
-      <Tabs.Screen 
-        name="alertas" 
+      
+      <Tabs.Screen
+        name="alertas"
         options={{
           tabBarIcon: ({ color, size }) => <Ionicons name="alert-circle" size={size} color={color} />,
-        }} 
-      />
-      <Tabs.Screen 
-        name="perfil" 
-        options={{
-          tabBarIcon: ({ color, size }) => <FontAwesome name="user" size={size} color={color} />,
-        }} 
+        }}
       />
 
-         <Tabs.Screen 
-        name="MapaUsuario" 
+        <Tabs.Screen
+        name="MapaUsuario"
         options={{
           tabBarIcon: ({ color, size }) => <FontAwesome name="map" size={size} color={color} />,
-        }} 
+        }}
       />
+       
+      <Tabs.Screen
+        name="perfil"
+        options={{
+          tabBarIcon: ({ color, size }) => <FontAwesome name="user" size={size} color={color} />,
+        }}
+      />
+
+    
+
     </Tabs>
+
+
   );
 }

@@ -7,17 +7,15 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
-import { auth, db } from "../../firebase.config";
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  doc,
-  updateDoc,
-  getDoc,
-} from "firebase/firestore";
 import { useFocusEffect } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+
+
+const getUser = async () => {
+  const userStr = await AsyncStorage.getItem("user");
+  return userStr ? JSON.parse(userStr) : null;
+};
 
 interface Cita {
   id: string;
@@ -41,60 +39,31 @@ export default function CitasTaller() {
 
   const cargarCitas = async () => {
     try {
-      const user = auth.currentUser;
-      if (!user) return;
+      const user = await getUser();
 
-      const q = query(collection(db, "citas"), where("tallerId", "==", user.uid));
-      const snapshot = await getDocs(q);
+      if (!user) throw new Error("Usuario no autenticado");
 
-      const listaCitas: Cita[] = [];
+      const token = await AsyncStorage.getItem("token");
 
-      const hoy = new Date();
-      const semana = Array.from({ length: 7 }).map((_, i) => {
-        const d = new Date();
-        d.setDate(hoy.getDate() + i);
-        return d.toLocaleDateString("sv-SE");
-      });
-
-      for (const docSnap of snapshot.docs) {
-        const data = docSnap.data();
-
-        if (!semana.includes(data.fecha)) continue;
-
-        let usuarioNombre = "Cliente";
-
-        try {
-          if (data.usuarioId) {
-            const userDoc = await getDoc(doc(db, "usuarios", data.usuarioId));
-            if (userDoc.exists()) {
-              const userData = userDoc.data();
-              usuarioNombre =
-                userData?.datosPersonales?.nombre || "Cliente";
-            }
-          }
-        } catch {
-          usuarioNombre = "Cliente";
-        }
-
-        listaCitas.push({
-          id: docSnap.id,
-          usuarioNombre,
-          vehiculoId: data.vehiculoId || "",
-          fecha: data.fecha || "",
-          hora: data.hora || "",
-          servicio: data.servicio || "",
-          estado: data.estado || "pendiente",
-        });
+      if (!token) {
+        throw new Error("No autenticado");
       }
 
-      listaCitas.sort((a, b) => {
-        if (a.fecha === b.fecha) return a.hora > b.hora ? 1 : -1;
-        return a.fecha > b.fecha ? 1 : -1;
-      });
 
-      setCitas(listaCitas);
+      const res = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/citas/taller`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await res.json();
+
+      setCitas(data);
     } catch (error) {
-      console.error("❌ Error cargando citas:", error);
+      console.error("Error cargando citas:", error);
     } finally {
       setLoading(false);
     }
@@ -102,7 +71,27 @@ export default function CitasTaller() {
 
   const confirmarCita = async (citaId: string) => {
     try {
-      await updateDoc(doc(db, "citas", citaId), { estado: "confirmada" });
+      const user = await getUser();
+
+      if (!user) throw new Error("Usuario no autenticado");
+
+      const token = await AsyncStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("No autenticado");
+      }
+
+
+      await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/citas/${citaId}/confirmar`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
       Alert.alert("Cita confirmada");
       cargarCitas();
     } catch (error) {
@@ -110,26 +99,49 @@ export default function CitasTaller() {
     }
   };
 
-  const cancelarCita = async (citaId: string) => {
-    Alert.alert("Cancelar cita", "¿Seguro que quieres cancelar esta cita?", [
-      { text: "No" },
-      {
-        text: "Sí, cancelar",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await updateDoc(doc(db, "citas", citaId), {
-              estado: "cancelada",
-            });
-            Alert.alert("Cita cancelada");
-            cargarCitas();
-          } catch {
-            Alert.alert("Error", "No se pudo cancelar la cita");
-          }
-        },
-      },
-    ]);
+   const cancelarCita = async (id: string) => {
+    try {
+      const user = await getUser();
+
+      if (!user) throw new Error("Usuario no autenticado");
+
+      const token = await AsyncStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("No autenticado");
+      }
+
+
+      await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/citas/${id}/cancelar`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      cargarCitas();
+    } catch (error) {
+      console.error("Error cancelando:", error);
+    }
   };
+
+    const confirmarCancelacion = (id: string) => {
+      Alert.alert(
+        "Cancelar cita",
+        "¿Seguro que deseas cancelar esta cita?",
+        [
+          { text: "No", style: "cancel" },
+          {
+            text: "Sí, cancelar",
+            style: "destructive",
+            onPress: () => cancelarCita(id),
+          },
+        ]
+      );
+    };
 
   if (loading) {
     return (
@@ -168,24 +180,23 @@ export default function CitasTaller() {
               key={cita.id}
               className={`
                 p-3 mb-3 rounded-lg 
-                 ${
-              cita.estado === "confirmada"
-                ? "bg-[#2cc55852] "
-                : cita.estado === "cancelada"
-                ? "bg-[#6b010120]"
-                : "bg-[#f59b0020]"
-            }
+                 ${cita.estado === "confirmada"
+                  ? "bg-[#2cc55852] "
+                  : cita.estado === "cancelada"
+                    ? "bg-[#6b010120]"
+                    : "bg-[#f59b0020]"
+                }
               `}
             >
               {/* Botón cancelar arriba derecha */}
               {cita.estado === "pendiente" && (
                 <View className="flex-row ">
-                     <Text className="font-bold text-base mb-1">
-                {cita.usuarioNombre}
-                 </Text>
-                 <View className="flex-1" />
+                  <Text className="font-bold text-base mb-1">
+                    {cita.usuarioNombre}
+                  </Text>
+                  <View className="flex-1" />
                   <TouchableOpacity
-                    onPress={() => cancelarCita(cita.id)}
+                    onPress={() => confirmarCancelacion(cita.id)}
                     className="bg-red-500 px-3 py-1 rounded "
                   >
                     <Text className="text-white font-bold">
@@ -195,26 +206,25 @@ export default function CitasTaller() {
                 </View>
               )}
 
-           
+
 
               <Text>Vehículo: {cita.vehiculoId}</Text>
               <Text>Servicio: {cita.servicio}</Text>
               <Text>Hora: {cita.hora}</Text>
 
               <Text
-                className={`font-bold mt-1 ${
-                  cita.estado === "confirmada"
-                    ? "text-green-600"
-                    : cita.estado === "cancelada"
+                className={`font-bold mt-1 ${cita.estado === "confirmada"
+                  ? "text-green-600"
+                  : cita.estado === "cancelada"
                     ? "text-red-600"
                     : "text-orange-500"
-                }`}
+                  }`}
               >
                 {cita.estado === "confirmada"
                   ? "Confirmada"
                   : cita.estado === "cancelada"
-                  ? "Cancelada"
-                  : "Pendiente"}
+                    ? "Cancelada"
+                    : "Pendiente"}
               </Text>
 
               {/* Botón confirmar abajo */}
