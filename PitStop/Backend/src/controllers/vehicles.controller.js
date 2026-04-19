@@ -1,4 +1,4 @@
-const service = require("./vehicles.service");
+const service = require("../services/vehicles.service");
 
 // 🚗 crear vehículo
 const createVehiculo = async (req, res) => {

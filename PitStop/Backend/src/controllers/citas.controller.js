@@ -1,4 +1,4 @@
-const service = require("./citas.service");
+const service = require("../services/citas.service");
 
 // 📅 GET horarios
 const getDisponibles = async (req, res) => {

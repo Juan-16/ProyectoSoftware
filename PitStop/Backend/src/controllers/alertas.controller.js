@@ -1,4 +1,4 @@
-const service = require("./alertas.service");
+const service = require("../services/alertas.service");
 
 // 🔔 GET
 const getAlertas = async (req, res) => {

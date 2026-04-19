@@ -3,12 +3,12 @@ const cors = require("cors");
 require("dotenv").config();
 
 // 📦 IMPORTAR RUTAS
-const personaRoutes = require("./src/persona/persona.routes");
-const tallerRoutes = require("./src/taller/taller.routes");
-const vehiculosRoutes = require("./src/vehicles/vehicles.routes");
-const alertasRoutes = require("./src/alertas/alertas.routes");
-const authRoutes = require("./src/auth/auth.routes");
-const citasRoutes = require("./src/citas/citas.routes");
+const personaRoutes = require("./src/routes/persona.routes");
+const tallerRoutes = require("./src/routes/taller.routes");
+const vehiculosRoutes = require("./src/routes/vehicles.routes");
+const alertasRoutes = require("./src/routes/alertas.routes");
+const authRoutes = require("./src/routes/auth.routes");
+const citasRoutes = require("./src/routes/citas.routes");
 
 const app = express();
 

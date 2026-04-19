@@ -1,7 +1,7 @@
-const admin = require("../../firebaseAdmin");
+const admin = require("../../firebaseAdmin.js");
 const db = admin.firestore();
 
-const { crearAlerta, deleteAlertasByVehiculo } = require("../Alertas/alertas.service.js");
+const { crearAlerta, deleteAlertasByVehiculo } = require("./alertas.service.js");
 
 // 🚗 crear vehículo + alertas
 const createVehiculo = async (uid, data) => {
