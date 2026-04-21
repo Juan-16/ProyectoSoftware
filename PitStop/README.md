@@ -120,7 +120,7 @@ El servidor se levantará en `http://localhost:3000` por defecto.
 Desde la raíz del proyecto:
 
 ```bash
-npx expo start -e
+npx expo start -c
 ```
 
 Escanea el código QR con la app **Expo Go** en tu dispositivo Android.
