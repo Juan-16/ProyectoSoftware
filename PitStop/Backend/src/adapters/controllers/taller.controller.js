@@ -1,9 +1,13 @@
-
-const service = require("../services/taller.service");
+const ConfigCitasInput = require("../../usecases/input/taller/ConfigCitasInput")
+const CreateTallerInput = require("../../usecases/input/taller/CreateTallerInput")
+const SaveServiciosInput = require("../../usecases/input/taller/SaveServiciosInput")
+const UpdateTallerInput = require("../../usecases/input/taller/UpdateTallerInput")
+const {GetTallerOutput, GetTallerByIdOutput} = require("../../usecases/output/GetTallerOutput.js")
+const GetTalleresOutput = require("../../usecases/output/GetTalleresOutput")
 
 const createTaller = async (req, res) => {
   try {
-    await service.createTaller(req.uid, req.body);
+    await CreateTallerInput(req.uid, req.body);
     res.json({ message: "Perfil taller guardado" });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -12,7 +16,7 @@ const createTaller = async (req, res) => {
 
 const getTallerInfo = async (req, res) => {
   try {
-    const data = await service.getTallerInfo(req.uid);
+    const data = await GetTallerOutput(req.uid);
     res.json(data);
   } catch (error) {
     res.status(404).json({ error: error.message });
@@ -21,7 +25,7 @@ const getTallerInfo = async (req, res) => {
 
 const updateTaller = async (req, res) => {
   try {
-    await service.updateTaller(req.uid, req.body);
+    await UpdateTallerInput(req.uid, req.body);
     res.json({ message: "Perfil actualizado correctamente" });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -30,7 +34,7 @@ const updateTaller = async (req, res) => {
 
 const saveServicios = async (req, res) => {
   try {
-    await service.saveServicios(req.uid, req.body);
+    await SaveServiciosInput(req.uid, req.body);
     res.json({ message: "Servicios guardados correctamente" });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -45,7 +49,7 @@ const getCercanos = async (req, res) => {
       return res.status(400).json({ error: "Lat y lng requeridos" });
     }
 
-    const data = await service.getTalleresCercanos(
+    const data = await GetTalleresOutput(
       parseFloat(lat),
       parseFloat(lng)
     );
@@ -64,7 +68,7 @@ const getTallerById = async (req, res) => {
       return res.status(400).json({ error: "ID requerido" });
     }
 
-    const taller = await service.getTallerById(id);
+    const taller = await GetTallerByIdOutput(id);
 
     res.json(taller);
   } catch (error) {
@@ -78,7 +82,7 @@ const getTallerById = async (req, res) => {
 
 const guardarConfiguracionCitas = async (req, res) => {
   try {
-    await service.guardarConfiguracionCitas(req.uid, req.body);
+    await ConfigCitasInput(req.uid, req.body);
 
     res.json({ message: "Configuración guardada" });
   } catch (error) {

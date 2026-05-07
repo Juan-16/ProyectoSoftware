@@ -1,9 +1,13 @@
-const service = require("../services/alertas.service");
+const CrearAlertaInput = require("../../usecases/input/alertas/CrearAlertaInput")
+const DeleteAlertaInput = require("../../usecases/input/alertas/DeleteAlertaInput")
+const CrearAlertaManual = require("../../usecases/input/alertas/CreateAlertaManualInput")
+const DeleteAlertasByVehiculo = require("../../usecases/input/alertas/DeleteAlertasByVehiculoInput")
+const GetAlertasOutput = require("../../usecases/output/GetAlertasOutput");
 
 // 🔔 GET
 const getAlertas = async (req, res) => {
   try {
-    const data = await service.getAlertas(req.uid);
+    const data = await GetAlertasOutput(req.uid);
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -13,7 +17,7 @@ const getAlertas = async (req, res) => {
 // ❌ DELETE
 const deleteAlerta = async (req, res) => {
   try {
-    await service.deleteAlerta(req.params.id);
+    await DeleteAlertaInput(req.params.id);
     res.json({ message: "Alerta eliminada" });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -29,7 +33,7 @@ const createAlerta = async (req, res) => {
       return res.status(400).json({ error: "Faltan datos requeridos" });
     }
 
-    await service.crearAlerta(req.uid, tipo, fecha, placa);
+    await CrearAlertaManualInput(req.uid, tipo, fecha, placa);
 
     res.status(201).json({ message: "Alerta creada" });
   } catch (error) {

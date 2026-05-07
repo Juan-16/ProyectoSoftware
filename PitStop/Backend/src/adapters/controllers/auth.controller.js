@@ -1,8 +1,10 @@
-const service = require("../services/auth.service");
+const LoginInput        = require("../../usecases/input/auth/LoginInput");
+const RegisterInput     = require("../../usecases/input/auth/RegisterInput");
+const PasswordResetInput = require("../../usecases/input/auth/PasswordResetInput");
 
 const login = async (req, res) => {
   try {
-    const data = await service.login(req.body.email, req.body.password);
+    const data = await LoginInput(req.body.email, req.body.password);
     res.json(data);
   } catch (error) {
     if (error.message.includes("bloqueada")) {
@@ -17,7 +19,7 @@ const login = async (req, res) => {
 
 const register = async (req, res) => {
   try {
-    const data = await service.register(req.body.email, req.body.password);
+    const data = await RegisterInput(req.body.email, req.body.password);
     res.status(201).json(data);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -26,7 +28,7 @@ const register = async (req, res) => {
 
 const forgotPassword = async (req, res) => {
   try {
-    await service.sendPasswordReset(req.body.email);
+    await PasswordResetInput(req.body.email);
     res.json({ message: "Correo enviado" });
   } catch (error) {
     res.status(400).json({ error: error.message });

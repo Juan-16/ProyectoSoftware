@@ -1,4 +1,10 @@
-const service = require("../services/citas.service");
+const CrearCitaInput = require("../../usecases/input/citas/CrearCitaInput")
+const ConfirmarCitaInput = require("../../usecases/input/citas/ConfirmarCitaInput")
+const CancelarCitaInput = require("../../usecases/input/citas/CancelarCitaInput")
+const EliminarCitaInput = require("../../usecases/input/citas/EliminarCitaInput")
+const GetCitasTallerOutput = require("../../usecases/output/GetCitasTallerOutput")
+const GetCitasUserOutput = require("../../usecases/output/GetCitasUserOutput")
+const GetHorariosOutput = require("../../usecases/output/GetHorariosOutput")
 
 // 📅 GET horarios
 const getDisponibles = async (req, res) => {
@@ -9,7 +15,7 @@ const getDisponibles = async (req, res) => {
       return res.status(400).json({ error: "Faltan parámetros" });
     }
 
-    const data = await service.getHorariosDisponibles(
+    const data = await GetHorariosOutput(
       tallerId,
       fecha
     );
@@ -23,7 +29,7 @@ const getDisponibles = async (req, res) => {
 // 📝 POST crear cita
 const crearCita = async (req, res) => {
   try {
-    await service.crearCita(req.uid, req.body);
+    await CrearCitaInput(req.uid, req.body);
 
     res.status(201).json({ message: "Cita creada" });
   } catch (error) {
@@ -38,7 +44,7 @@ const crearCita = async (req, res) => {
 // 📄 GET mis citas
 const getMisCitas = async (req, res) => {
   try {
-    const data = await service.getCitasByUser(req.uid);
+    const data = await GetCitasUserOutput(req.uid);
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -48,7 +54,7 @@ const getMisCitas = async (req, res) => {
 // ❌ PUT cancelar
 const cancelar = async (req, res) => {
   try {
-    await service.cancelarCita(req.params.id, req.uid);
+    await CancelarCitaInput(req.params.id, req.uid);
     res.json({ message: "Cita cancelada" });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -58,7 +64,7 @@ const cancelar = async (req, res) => {
 // 🗑 DELETE eliminar
 const eliminar = async (req, res) => {
   try {
-    await service.eliminarCita(req.params.id, req.uid);
+    await EliminarCitaInput(req.params.id, req.uid);
     res.json({ message: "Cita eliminada" });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -68,7 +74,7 @@ const eliminar = async (req, res) => {
 // 📅 GET citas del taller
 const getCitasTaller = async (req, res) => {
   try {
-    const data = await service.getCitasTaller(req.uid);
+    const data = await getCitasTaller(req.uid);
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -80,7 +86,7 @@ const confirmarCita = async (req, res) => {
   try {
     const { id } = req.params;
 
-    await service.confirmarCita(id);
+    await confirmarCita(id);
 
     res.json({ message: "Cita confirmada" });
   } catch (error) {

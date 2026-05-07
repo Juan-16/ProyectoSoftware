@@ -1,8 +1,11 @@
 const service = require("../services/persona.service");
+const CreatePersonaInput = require("../../usecases/input/persona/CreatePersonaInput");
+const UpdatePersonaInput = require("../../usecases/input/persona/UpdatePersonaInput");
+const GetProfileOutput = require("../../usecases/output/GetProfileOutput");
 
 const createPersona = async (req, res) => {
   try {
-    await service.createPersona(req.uid, req.body);
+    await CreatePersonaInput(req.uid, req.body);
     res.json({ message: "Perfil persona guardado" });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -11,7 +14,7 @@ const createPersona = async (req, res) => {
 
 const getMe = async (req, res) => {
   try {
-    const data = await service.getProfile(req.uid);
+    const data = await GetProfileOutput(req.uid);
     res.json(data || { uid: req.uid, tipo: null });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -23,7 +26,7 @@ const updatePersonaController = async (req, res) => {
     const uid = req.uid; // 🔥 CORREGIDO
     const data = req.body;
 
-    await service.updatePersona(uid, data); // 🔥 CORREGIDO
+    await UpdatePersonaInput(uid, data); // 🔥 CORREGIDO
 
     res.json({
       ok: true,

@@ -1,14 +1,10 @@
-
-
-const admin = require("../../firebaseAdmin");
-const { enviarCorreo } = require("../../shared/services/emailService");
+const admin = require("../../../firebaseAdmin");
+const { enviarCorreo } = require("../../../shared/services/emailService");
 
 const db = admin.firestore();
-
 const loginAttempts = {};
 
-// 🔐 LOGIN
-const login = async (email, password) => {
+const LoginInput = async (email, password) => {
   if (!email || !password) {
     throw new Error("Email y contraseña son requeridos");
   }
@@ -18,8 +14,6 @@ const login = async (email, password) => {
   if (intentos >= 3) {
     throw new Error("Cuenta bloqueada. Revisa tu correo para restablecer contraseña.");
   }
-
-  console.log("API KEY REAL:", process.env.FIREBASE_API_KEY);
 
   const response = await fetch(
     `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FIREBASE_API_KEY}`,
@@ -36,7 +30,12 @@ const login = async (email, password) => {
     loginAttempts[email] = intentos + 1;
 
     if (loginAttempts[email] >= 3) {
-      await sendPasswordReset(email);
+      const link = await admin.auth().generatePasswordResetLink(email);
+      await enviarCorreo(
+        email,
+        "Restablecer contraseña",
+        `<p>Haz clic aquí para restablecer tu contraseña:</p><a href="${link}">${link}</a>`
+      );
     }
 
     throw new Error("Email o contraseña incorrecta");
@@ -45,7 +44,6 @@ const login = async (email, password) => {
   loginAttempts[email] = 0;
 
   const uid = data.localId;
-
   let tipo = null;
 
   const personaDoc = await db.collection("usuarios").doc(uid).get();
@@ -63,48 +61,4 @@ const login = async (email, password) => {
   };
 };
 
-const register = async (email, password) => {
-  if (!email || !password) {
-    throw new Error("Email y contraseña requeridos");
-  }
-
-  const user = await admin.auth().createUser({
-    email,
-    password,
-  });
-
-  // 🔥 crear perfil automáticamente
-  await db.collection("usuarios").doc(user.uid).set({
-    email,
-    creadoEn: new Date(),
-    datosPersonales: {},
-    vehiculos: {},
-  });
-
-  return {
-    message: "Usuario creado",
-    uid: user.uid,
-  };
-};
-
-// 🆕 FORGOT PASSWORD
-const sendPasswordReset = async (email) => {
-  if (!email) {
-    throw new Error("Email requerido");
-  }
-
-  const link = await admin.auth().generatePasswordResetLink(email);
-
-  await enviarCorreo(
-    email,
-    "Restablecer contraseña",
-    `<p>Haz clic aquí para restablecer tu contraseña:</p>
-     <a href="${link}">${link}</a>`
-  );
-};
-
-module.exports = {
-  login,
-  register,
-  sendPasswordReset,
-};
+module.exports = LoginInput;

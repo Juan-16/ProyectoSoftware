@@ -1,9 +1,12 @@
-const service = require("../services/vehicles.service");
+const CreateVehiculoInput = require("../../usecases/input/vehicles/CreateVehiculoInput")
+const DeleteVehiculoInput = require("../../usecases/input/vehicles/DeleteVehiculoInput")
+const GetVehiculosOutput = require("../../usecases/output/GetVehiculosOutput")
+const CreateAlertaManualInput = require("../../usecases/input/vehicles/CreateAlertaManualInput")
 
 // 🚗 crear vehículo
 const createVehiculo = async (req, res) => {
   try {
-    await service.createVehiculo(req.uid, req.body);
+    await CreateVehiculoInput(req.uid, req.body);
     res.json({ message: "Vehículo y alertas creadas" });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -13,7 +16,7 @@ const createVehiculo = async (req, res) => {
 // 📥 obtener vehículos
 const getVehiculos = async (req, res) => {
   try {
-    const data = await service.getVehiculos(req.uid);
+    const data = await GetVehiculosOutput(req.uid);
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: "Error obteniendo vehículos" });
@@ -23,7 +26,7 @@ const getVehiculos = async (req, res) => {
 // 🔔 alerta manual
 const createAlerta = async (req, res) => {
   try {
-    await service.createAlertaManual(req.uid, req.body);
+    await CrearAlertaManualInput(req.uid, req.body);
     res.status(201).json({ message: "Alerta creada" });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -33,7 +36,7 @@ const createAlerta = async (req, res) => {
 // ❌ eliminar vehículo
 const deleteVehiculo = async (req, res) => {
   try {
-    await service.deleteVehiculo(req.uid, req.params.placa);
+    await DeleteVehiculoInput(req.uid, req.params.placa);
     res.json({ message: "Vehículo eliminado" });
   } catch (error) {
     res.status(500).json({ error: error.message });
