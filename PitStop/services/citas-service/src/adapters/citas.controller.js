@@ -1,4 +1,4 @@
-const service = require("./citas.service");
+const service = require("../citas.service");
 
 const getDisponibles = async (req, res) => {
   try {
