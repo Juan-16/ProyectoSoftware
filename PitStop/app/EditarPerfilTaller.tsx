@@ -65,7 +65,7 @@ export default function EditProfileTaller() {
             if (!token) throw new Error("No autenticado");
 
             const res = await fetch(
-                `${process.env.EXPO_PUBLIC_API_URL}/taller`,
+                `${process.env.EXPO_PUBLIC_TALLER_URL}/taller`,
                 {
                     method: "GET",
                     headers: {
@@ -116,7 +116,7 @@ export default function EditProfileTaller() {
             if (!token) throw new Error("No autenticado");
 
             const res = await fetch(
-                `${process.env.EXPO_PUBLIC_API_URL}/taller`,
+                `${process.env.EXPO_PUBLIC_TALLER_URL}/taller`,
                 {
                     method: "PUT",
                     headers: {

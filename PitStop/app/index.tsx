@@ -56,7 +56,7 @@ export default function Index() {
 
     try {
       const res = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/auth/register`,
+        `${process.env.EXPO_PUBLIC_AUTH_URL}/auth/register`,
         {
           method: "POST",
           headers: {
@@ -79,7 +79,7 @@ export default function Index() {
 
       // 🔥 LOGIN AUTOMÁTICO
       const loginRes = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/auth/login`,
+        `${process.env.EXPO_PUBLIC_AUTH_URL}/auth/login`,
         {
           method: "POST",
           headers: {

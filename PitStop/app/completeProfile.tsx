@@ -58,7 +58,7 @@ export default function completeProfile() {
             }
 
             const response = await fetch(
-                `${process.env.EXPO_PUBLIC_API_URL}/persona`,
+                `${process.env.EXPO_PUBLIC_PERSONA_URL}/persona`,
                 {
                     method: "POST",
                     headers: {
@@ -112,7 +112,7 @@ export default function completeProfile() {
                 throw new Error("No autenticado");
             }
 
-            const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/taller`, {
+            const response = await fetch(`${process.env.EXPO_PUBLIC_TALLER_URL}/taller`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

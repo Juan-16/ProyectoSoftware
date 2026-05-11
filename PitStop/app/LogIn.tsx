@@ -19,7 +19,7 @@ export default function LogIn() {
       setErrorMessage("");
 
       const res = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/auth/login`,
+        `${process.env.EXPO_PUBLIC_AUTH_URL}/auth/login`,
         {
           method: "POST",
           headers: {

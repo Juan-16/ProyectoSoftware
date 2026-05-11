@@ -53,7 +53,7 @@ export default function DetalleTaller() {
   const cargarTaller = async () => {
     try {
       const res = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/taller/${id}`
+        `${process.env.EXPO_PUBLIC_TALLER_URL}/taller/${id}`
       );
 
       const data = await res.json();
@@ -83,7 +83,7 @@ export default function DetalleTaller() {
         throw new Error("No autenticado");
       }
       const res = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/vehiculos`,
+        `${process.env.EXPO_PUBLIC_VEHICLES_URL}/vehiculos`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -105,7 +105,7 @@ export default function DetalleTaller() {
       const fechaISO = fechaSeleccionada.toLocaleDateString("sv-SE");
 
       const res = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/citas/disponibles?tallerId=${id}&fecha=${fechaISO}`
+        `${process.env.EXPO_PUBLIC_CITAS_URL}/citas/disponibles?tallerId=${id}&fecha=${fechaISO}`
       );
 
       const data = await res.json();
@@ -143,7 +143,7 @@ export default function DetalleTaller() {
       const fechaISO = fechaSeleccionada.toLocaleDateString("sv-SE");
 
       const res = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/citas`,
+        `${process.env.EXPO_PUBLIC_CITAS_URL}/citas`,
         {
           method: "POST",
           headers: {

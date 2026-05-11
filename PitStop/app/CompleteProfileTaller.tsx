@@ -44,7 +44,7 @@ const guardarServiciosTallerBackend = async ({
         throw new Error("No autenticado");
     }
 
-    const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/taller/servicios`, {
+    const res = await fetch(`${process.env.EXPO_PUBLIC_TALLER_URL}/taller/servicios`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

@@ -45,7 +45,7 @@ export default function PerfilPersona() {
       }
 
 
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/persona/me`, {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_PERSONA_URL}/persona/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

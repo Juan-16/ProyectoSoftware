@@ -33,7 +33,7 @@ const guardarVehiculoBackend = async (data: any) => {
         throw new Error("No autenticado");
     }
 
-    const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/vehiculos`, {
+    const res = await fetch(`${process.env.EXPO_PUBLIC_VEHICLES_URL}/vehiculos`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

@@ -36,7 +36,7 @@ export default function Vehiculos() {
       }
 
 
-      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/vehiculos`, {
+      const res = await fetch(`${process.env.EXPO_PUBLIC_VEHICLES_URL}/vehiculos`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -71,7 +71,7 @@ export default function Vehiculos() {
               }
 
 
-              await fetch(`${process.env.EXPO_PUBLIC_API_URL}/vehiculos/${placa}`, {
+              await fetch(`${process.env.EXPO_PUBLIC_VEHICLES_URL}/vehiculos/${placa}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
               });

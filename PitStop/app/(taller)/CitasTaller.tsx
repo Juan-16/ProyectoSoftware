@@ -51,7 +51,7 @@ export default function CitasTaller() {
 
 
       const res = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/citas/taller`,
+        `${process.env.EXPO_PUBLIC_CITAS_URL}/citas/taller`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -83,7 +83,7 @@ export default function CitasTaller() {
 
 
       await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/citas/${citaId}/confirmar`,
+        `${process.env.EXPO_PUBLIC_CITAS_URL}/citas/${citaId}/confirmar`,
         {
           method: "PATCH",
           headers: {
@@ -113,7 +113,7 @@ export default function CitasTaller() {
 
 
       await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/citas/${id}/cancelar`,
+        `${process.env.EXPO_PUBLIC_CITAS_URL}/citas/${id}/cancelar`,
         {
           method: "PUT",
           headers: {

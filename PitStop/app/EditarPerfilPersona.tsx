@@ -78,7 +78,7 @@ export default function EditarPerfilPersona() {
             }
 
 
-            const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/persona/me`, {
+            const res = await fetch(`${process.env.EXPO_PUBLIC_PERSONA_URL}/persona/me`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
@@ -146,7 +146,7 @@ export default function EditarPerfilPersona() {
             if (!token) {
                 throw new Error("No autenticado");
             }
-            await fetch(`${process.env.EXPO_PUBLIC_API_URL}/persona/update`, {
+            await fetch(`${process.env.EXPO_PUBLIC_PERSONA_URL}/persona/update`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",

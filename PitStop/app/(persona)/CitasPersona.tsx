@@ -48,7 +48,7 @@ export default function CitasPersona() {
       }
 
       const res = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/citas`,
+        `${process.env.EXPO_PUBLIC_CITAS_URL}/citas`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -80,7 +80,7 @@ export default function CitasPersona() {
 
 
       await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/citas/${id}/cancelar`,
+        `${process.env.EXPO_PUBLIC_CITAS_URL}/citas/${id}/cancelar`,
         {
           method: "PUT",
           headers: {
@@ -124,7 +124,7 @@ export default function CitasPersona() {
 
 
       await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/citas/${id}`,
+        `${process.env.EXPO_PUBLIC_CITAS_URL}/citas/${id}`,
         {
           method: "DELETE",
           headers: {

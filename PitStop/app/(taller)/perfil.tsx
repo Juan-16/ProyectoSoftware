@@ -58,7 +58,7 @@ export default function VerProfileTaller() {
       }
 
 
-      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/taller`, {
+      const res = await fetch(`${process.env.EXPO_PUBLIC_TALLER_URL}/taller`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

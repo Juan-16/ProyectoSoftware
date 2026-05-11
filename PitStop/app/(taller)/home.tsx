@@ -124,7 +124,7 @@ export default function TabsTalleresHome() {
     }
 
     const res = await fetch(
-      `${process.env.EXPO_PUBLIC_API_URL}/taller/configuracion-citas`,
+      `${process.env.EXPO_PUBLIC_TALLER_URL}/taller/configuracion-citas`,
       {
         method: "PATCH",
         headers: {

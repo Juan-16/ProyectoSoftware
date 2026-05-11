@@ -61,7 +61,7 @@ export default function Alertas() {
       if (!user) return;
 
       const snapshot = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/alertas`,
+        `${process.env.EXPO_PUBLIC_ALERTAS_URL}/alertas`,
         {
           headers: {
             Authorization: `Bearer ${await AsyncStorage.getItem("token")}`,
@@ -150,7 +150,64 @@ const obtenerSolicitud = async () => {
   };
 
   const confirmarNuevaAlerta = async () => {
-    setModalVisible(false);
+    if (!alertaSeleccionada) return;
+
+    let fechaNueva: Date | null = null;
+
+    if (alertaSeleccionada.tipo === "SOAT") {
+      fechaNueva = fechaSoat;
+      if (!fechaNueva) {
+        setErrorFecha({ soat: true, tecno: false });
+        return;
+      }
+    } else if (alertaSeleccionada.tipo === "TECNOMECANICA") {
+      fechaNueva = fechaTecno;
+      if (!fechaNueva) {
+        setErrorFecha({ soat: false, tecno: true });
+        return;
+      }
+    }
+
+    try {
+      const user = await getUser();
+
+      if (!user) throw new Error("Usuario no autenticado");
+
+      const token = await AsyncStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("No autenticado");
+      }
+
+      if (!fechaNueva) return;
+
+      await fetch(`${process.env.EXPO_PUBLIC_ALERTAS_URL}/alertas/${alertaSeleccionada.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      await fetch(`${process.env.EXPO_PUBLIC_ALERTAS_URL}/alertas`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          tipo: alertaSeleccionada.tipo,
+          fecha: fechaNueva.toISOString().split("T")[0],
+          placa: alertaSeleccionada.placa,
+        }),
+      });
+
+      obtenerAlertas();
+      setModalVisible(false);
+      setFechaSoat(null);
+      setFechaTecno(null);
+      setAlertaSeleccionada(null);
+      setErrorFecha({ soat: false, tecno: false });
+    } catch (error) {
+      console.log("Error creando nueva alerta:", error);
+    }
   };
 
   const renderAlerta = ({ item }: { item: Alerta }) => (
@@ -258,21 +315,70 @@ const obtenerSolicitud = async () => {
         </View>
       )}
 
-      {/* MODAL */}
-      <Modal visible={modalVisible} transparent animationType="slide">
+       <Modal visible={modalVisible} transparent animationType="slide">
         <View className="flex-1 justify-center items-center bg-black/50">
           <View className="bg-white w-11/12 p-6 rounded-2xl">
             <Text className="text-lg font-bold mb-4">
-              Actualizar fecha
+              Actualizar fecha {alertaSeleccionada?.tipo}
             </Text>
+
+            {alertaSeleccionada?.tipo === "SOAT" && (
+              <TouchableOpacity
+                onPress={() => setMostrarPicker("soat")}
+                className={`bg-gray-100 border px-4 py-3 rounded mb-4 ${
+                  errorFecha.soat ? "border-red-500" : "border-gray-300"
+                }`}
+              >
+                <Text>
+                  {fechaSoat ? fechaSoat.toLocaleDateString() : "Seleccionar fecha SOAT"}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {alertaSeleccionada?.tipo === "TECNOMECANICA" && (
+              <TouchableOpacity
+                onPress={() => setMostrarPicker("tecno")}
+                className={`bg-gray-100 border px-4 py-3 rounded mb-4 ${
+                  errorFecha.tecno ? "border-red-500" : "border-gray-300"
+                }`}
+              >
+                <Text>
+                  {fechaTecno
+                    ? fechaTecno.toLocaleDateString()
+                    : "Seleccionar fecha Tecnomecánica"}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {mostrarPicker && (
+              <DateTimePicker
+                value={
+                  mostrarPicker === "soat"
+                    ? fechaSoat || new Date()
+                    : fechaTecno || new Date()
+                }
+                mode="date"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                onChange={(event, selectedDate) => {
+                  setMostrarPicker(null);
+                  if (mostrarPicker === "soat") setFechaSoat(selectedDate || fechaSoat);
+                  else setFechaTecno(selectedDate || fechaTecno);
+                }}
+              />
+            )}
+
+            <TouchableOpacity
+              onPress={confirmarNuevaAlerta}
+              className="bg-orange-500 px-4 py-3 rounded mt-4"
+            >
+              <Text className="text-white font-bold text-center">Guardar fecha</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => setModalVisible(false)}
               className="mt-2 px-4 py-3 rounded"
             >
-              <Text className="text-center text-gray-700">
-                Cerrar
-              </Text>
+              <Text className="text-center text-gray-700">Cancelar</Text>
             </TouchableOpacity>
           </View>
         </View>

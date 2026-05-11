@@ -1,0 +1,21 @@
+{
+  "name": "alertas-service",
+  "version": "1.0.0",
+  "description": "Microservicio de alertas - PitStop",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "firebase-admin": "^11.11.0",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

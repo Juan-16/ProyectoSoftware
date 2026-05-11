@@ -18,38 +18,38 @@ export default function Home() {
   const router = useRouter();
 
 
-    useFocusEffect(
-      useCallback(() => {
-           cargarTalleresCercanos();
-      }, [])
-    );
-  
+  useFocusEffect(
+    useCallback(() => {
+      cargarTalleresCercanos();
+    }, [])
+  );
+
 
   const cargarTalleresCercanos = async () => {
-  try {
-    const { status } = await Location.requestForegroundPermissionsAsync();
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
 
-    if (status !== "granted") {
-      Alert.alert("Permiso denegado");
-      return;
+      if (status !== "granted") {
+        Alert.alert("Permiso denegado");
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+
+      const res = await fetch(
+        `${process.env.EXPO_PUBLIC_TALLER_URL}/taller/cercanos?lat=${latitude}&lng=${longitude}`
+      );
+
+      const data = await res.json();
+
+      setTalleres(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-
-    const location = await Location.getCurrentPositionAsync({});
-    const { latitude, longitude } = location.coords;
-
-    const res = await fetch(
-      `${process.env.EXPO_PUBLIC_API_URL}/taller/cercanos?lat=${latitude}&lng=${longitude}`
-    );
-
-    const data = await res.json();
-
-    setTalleres(data);
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
 
   if (loading) {
@@ -99,7 +99,7 @@ export default function Home() {
                 {t.direccion}
               </Text>
 
-              {t.distancia && (
+              {t.distancia !== undefined && t.distancia !== null && (
                 <Text className="text-gray-400 text-sm">
                   📍 {t.distancia.toFixed(1)} km
                 </Text>
