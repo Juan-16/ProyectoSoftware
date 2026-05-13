@@ -1,4 +1,4 @@
-const admin = require("../firebaseAdmin");
+const admin = require("../src/frameworks/firebaseAdmin");
 
 module.exports = async function (req, res, next) {
   try {

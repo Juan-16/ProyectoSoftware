@@ -1,42 +1,51 @@
-const service = require("../vehicles.service");
+const CreateVehiculoInput = require("../usecases/input/CreateVehiculoInput")
+const DeleteVehiculoInput = require("../usecases/input/DeleteVehiculoInput")
+const GetVehiculosOutput = require("../usecases/output/GetVehiculosOutput")
+const CreateAlertaManualInput = require("../usecases/input/CreateAlertaManualInput")
 
+// 🚗 crear vehículo
 const createVehiculo = async (req, res) => {
   try {
-    const token = req.headers.authorization?.split("Bearer ")[1];
-    await service.createVehiculo(req.uid, req.body, token);
+    await CreateVehiculoInput(req.uid, req.body);
     res.json({ message: "Vehículo y alertas creadas" });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
 
+// 📥 obtener vehículos
 const getVehiculos = async (req, res) => {
   try {
-    const data = await service.getVehiculos(req.uid);
+    const data = await GetVehiculosOutput(req.uid);
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: "Error obteniendo vehículos" });
   }
 };
 
+// 🔔 alerta manual
 const createAlerta = async (req, res) => {
   try {
-    const token = req.headers.authorization?.split("Bearer ")[1];
-    await service.createAlertaManual(req.uid, req.body, token);
+    await CrearAlertaManualInput(req.uid, req.body);
     res.status(201).json({ message: "Alerta creada" });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
 
+// ❌ eliminar vehículo
 const deleteVehiculo = async (req, res) => {
   try {
-    const token = req.headers.authorization?.split("Bearer ")[1];
-    await service.deleteVehiculo(req.uid, req.params.placa, token);
+    await DeleteVehiculoInput(req.uid, req.params.placa);
     res.json({ message: "Vehículo eliminado" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-module.exports = { createVehiculo, getVehiculos, createAlerta, deleteVehiculo };
+module.exports = {
+  createVehiculo,
+  getVehiculos,
+  createAlerta,
+  deleteVehiculo,
+};
