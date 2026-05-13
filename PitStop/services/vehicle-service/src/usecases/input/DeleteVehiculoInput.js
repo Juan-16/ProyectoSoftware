@@ -1,5 +1,5 @@
-const admin = require("../../../firebaseAdmin");
-const DeleteAlertasByVehiculoInput = require("../../alertas/input/DeleteAlertasByVehiculoInput");
+const admin = require("../../frameworks/firebaseAdmin");
+const DeleteAlertasByVehiculoInput = require("../../../../alertas-service/src/usecases/input/DeleteAlertasByVehiculoInput");
 
 const db = admin.firestore();
 

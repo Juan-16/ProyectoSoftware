@@ -1,4 +1,5 @@
 const CrearAlertaInput = require("../../alertas/input/CrearAlertaInput");
+const CrearAlertaInput = require("../../../../alertas-service/src/usecases/input/CrearAlertaInput");
 
 const CreateAlertaManualInput = async (uid, data) => {
   const { tipo, fecha, placa } = data;

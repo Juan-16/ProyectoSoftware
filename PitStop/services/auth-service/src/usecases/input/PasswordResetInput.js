@@ -1,5 +1,5 @@
-const admin = require("../../../firebaseAdmin");
-const { enviarCorreo } = require("../../../shared/services/mailer");
+const admin = require("../../frameworks/firebaseAdmin");
+const { enviarCorreo } = require("../../frameworks/mailer");
 
 const PasswordResetInput = async (email) => {
   if (!email) {

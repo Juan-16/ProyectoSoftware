@@ -1,5 +1,5 @@
-const admin = require("../../../firebaseAdmin");
-const CrearAlertaInput = require("../../alertas/input/CrearAlertaInput");
+const admin = require("../../frameworks/firebaseAdmin");
+const CrearAlertaInput = require("../../../../alertas-service/src/usecases/input/CrearAlertaInput");
 
 const db = admin.firestore();
 
