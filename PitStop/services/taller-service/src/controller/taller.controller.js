@@ -1,4 +1,4 @@
-const service = require("../taller.service");
+const service = require("../application/taller.service");
 
 const createTaller = async (req, res) => {
   try {

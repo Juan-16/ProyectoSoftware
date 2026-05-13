@@ -1,4 +1,4 @@
-const service = require("../alertas.service");
+const service = require("../application/alertas.service");
 
 const getAlertas = async (req, res) => {
   try {

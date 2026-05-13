@@ -1,4 +1,4 @@
-const admin = require("../firebaseAdmin");
+const admin = require("../infraestructure/firebaseAdmin");
 const db = admin.firestore();
 
 const calcularDistancia = (lat1, lon1, lat2, lon2) => {

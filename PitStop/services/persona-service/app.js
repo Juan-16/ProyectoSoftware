@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
-const personaRoutes = require("./src/persona.routes");
+const personaRoutes = require("./src/routes/persona.routes");
 
 const app = express();
 app.use(cors());

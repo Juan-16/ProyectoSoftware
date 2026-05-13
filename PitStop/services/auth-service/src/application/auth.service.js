@@ -1,6 +1,6 @@
 
-const admin = require("../firebaseAdmin");
-const { enviarCorreo } = require("../shared/services/mailer");
+const admin = require("../infrastructure/firebaseAdmin");
+const { enviarCorreo } = require("../../shared/services/mailer");
 
 const db = admin.firestore();
 const loginAttempts = {};

@@ -1,4 +1,4 @@
-const admin = require("../firebaseAdmin");
+const admin = require("../infraestructure/firebaseAdmin");
 const db = admin.firestore();
 
 const convertirAHoras = (hora) => {

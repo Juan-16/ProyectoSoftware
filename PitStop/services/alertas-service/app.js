@@ -3,8 +3,8 @@ const cors = require("cors");
 const cron = require("node-cron");
 require("dotenv").config();
 
-const alertasRoutes = require("./src/alertas.routes");
-const admin = require("./firebaseAdmin");
+const alertasRoutes = require("./src/routes/alertas.routes");
+const admin = require("./src/infrastructure/firebaseAdmin");
 const { enviarCorreo } = require("./shared/services/mailer");
 
 const app = express();

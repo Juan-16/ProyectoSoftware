@@ -1,4 +1,4 @@
-const admin = require("../firebaseAdmin");
+const admin = require("../infraestructure/firebaseAdmin");
 const fetch = require("node-fetch");
 
 const db = admin.firestore();

@@ -1,4 +1,4 @@
-const admin = require("../../firebaseAdmin");
+const admin = require("../infrastructure/firebaseAdmin");
 const db = admin.firestore();
 
 const crearAlerta = async (uid, tipo, fecha, placa) => {

@@ -1,4 +1,4 @@
-const service = require("../persona.service");
+const service = require("../application/persona.service");
 
 const createPersona = async (req, res) => {
   try {
